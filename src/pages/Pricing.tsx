@@ -1,184 +1,436 @@
-import React, { useState } from 'react';
-import { Check, Zap, Sparkles, ShieldCheck, CreditCard, Lock, Smartphone, Crown } from 'lucide-react';
-import { motion, useReducedMotion } from 'framer-motion';
-import CarrierBillingModal from '../components/CarrierBillingModal';
-import { useDocumentTitle } from '../hooks/usePageMeta';
-import { getStaggerContainer, getFadeUpItem } from '../utils/animations';
+import { useCallback, useState } from "react";
+import { ArrowRight, Check, Crown, Sparkles, ShieldCheck, X } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { usePageMeta } from "../hooks/usePageMeta";
+import { useFocusTrap } from "../hooks/useFocusTrap";
+import { getStaggerContainer, getFadeUpItem } from "../utils/animations";
 
-type BillingCycle = 'weekly' | 'monthly' | 'quarterly';
+type PlanTone = "core" | "select" | "elite" | "signature";
+type BillingCycle = "weekly" | "monthly" | "3months";
+type PlanPrice = { price: string; period: string };
+
+type Plan = {
+  name: string;
+  prices: Record<BillingCycle, PlanPrice>;
+  description: string;
+  features: string[];
+  featured: boolean;
+  signature: boolean;
+  tone: PlanTone;
+};
+
+const plans: Plan[] = [
+  {
+    name: "Serasé Core",
+    prices: {
+      weekly: { price: "Free", period: "" },
+      monthly: { price: "Free", period: "" },
+      "3months": { price: "Free", period: "" },
+    },
+    description: "Start dating with the essentials.",
+    features: ["30 likes/day", "5 AI prompts", "Verified badge"],
+    featured: false,
+    signature: false,
+    tone: "core",
+  },
+  {
+    name: "Serasé Select",
+    prices: {
+      weekly: { price: "RM 6.99", period: "/week" },
+      monthly: { price: "RM 14.99", period: "/month" },
+      "3months": { price: "RM 26.99", period: "/3 months" },
+    },
+    description: "See more and get more control.",
+    features: ["Signal", "See who liked you", "5 rewinds/day", "30 AI prompts", "Hide age"],
+    featured: false,
+    signature: false,
+    tone: "select",
+  },
+  {
+    name: "Serasé Elite",
+    prices: {
+      weekly: { price: "RM 18.99", period: "/week" },
+      monthly: { price: "RM 39.99", period: "/month" },
+      "3months": { price: "RM 59.99", period: "/3 months" },
+    },
+    description: "Get more visibility and chat features.",
+    features: ["Includes Select features", "Read receipts", "75 AI prompts", "Weekly Boost", "Custom visibility"],
+    featured: true,
+    signature: false,
+    tone: "elite",
+  },
+  {
+    name: "Serasé Signature",
+    prices: {
+      weekly: { price: "RM 44.99", period: "/week" },
+      monthly: { price: "RM 89.99", period: "/month" },
+      "3months": { price: "RM 114.99", period: "/3 months" },
+    },
+    description: "Get our highest level of privacy and access.",
+    features: ["Includes Elite features", "Incognito", "Visitor insights", "150 AI prompts", "Priority verification"],
+    featured: false,
+    signature: true,
+    tone: "signature",
+  },
+];
+
+const planStyles: Record<
+  PlanTone,
+  {
+    card: string;
+    title: string;
+    description: string;
+    divider: string;
+    price: string;
+    period: string;
+    check: string;
+    feature: string;
+    status: string;
+    learn: string;
+    detailEyebrow: string;
+  }
+> = {
+  core: {
+    card: "border border-[#E8D8CC] bg-gradient-to-b from-[#FFFDFB] to-[#F5ECE5] text-[#3A302C] shadow-[0_22px_52px_rgba(82,52,43,0.10)]",
+    title: "text-[#3B302C]",
+    description: "text-[#756761]",
+    divider: "border-[#E4D6CE]",
+    price: "text-[#2E2623]",
+    period: "text-[#776963]",
+    check: "bg-[#F0DEDB] text-[#9D3037]",
+    feature: "text-[#5F5551]",
+    status: "bg-white/70 text-[#8A2128] ring-1 ring-[#E8D8CC]",
+    learn: "bg-[#342A27] text-white hover:bg-[#251E1C]",
+    detailEyebrow: "text-[#8A2128]",
+  },
+  select: {
+    card: "border border-[#E5BFC0] bg-gradient-to-b from-[#F8DEDC] via-[#F7E6E1] to-[#F8EFEA] text-[#4B3031] shadow-[0_22px_52px_rgba(126,54,61,0.12)]",
+    title: "text-[#7C2830]",
+    description: "text-[#765A59]",
+    divider: "border-[#DDBFC0]",
+    price: "text-[#6E222A]",
+    period: "text-[#8B6361]",
+    check: "bg-white/60 text-[#A72D3B]",
+    feature: "text-[#654C4B]",
+    status: "bg-white/55 text-[#8A2128] ring-1 ring-[#DCB9BA]",
+    learn: "bg-[#A83340] text-white hover:bg-[#8E2632]",
+    detailEyebrow: "text-[#8E2632]",
+  },
+  elite: {
+    card: "border border-[#9C3A45] bg-gradient-to-b from-[#AD3A47] via-[#952A36] to-[#7E202B] text-white shadow-[0_26px_60px_rgba(112,24,35,0.24)]",
+    title: "text-white",
+    description: "text-white/72",
+    divider: "border-white/16",
+    price: "text-white",
+    period: "text-[#F4C9C8]",
+    check: "bg-white/14 text-[#FFD9D6]",
+    feature: "text-white/90",
+    status: "bg-white/10 text-white ring-1 ring-white/16",
+    learn: "bg-white text-[#8A2128] hover:bg-[#FFF2EF]",
+    detailEyebrow: "text-[#FFD5D1]",
+  },
+  signature: {
+    card: "border-2 border-[#D8A43E]/65 bg-gradient-to-b from-[#451620] via-[#641827] to-[#2C1118] text-white shadow-[0_28px_64px_rgba(48,12,20,0.28)]",
+    title: "text-[#FFD24D]",
+    description: "text-white/72",
+    divider: "border-white/12",
+    price: "text-white",
+    period: "text-[#F2C75A]",
+    check: "bg-[#D99B1E]/24 text-[#FFD34F]",
+    feature: "text-white/92",
+    status: "bg-white/8 text-white ring-1 ring-white/14",
+    learn: "bg-[#FFD047] text-[#4B2B11] hover:bg-[#FFDA68]",
+    detailEyebrow: "text-[#FFD34F]",
+  },
+};
 
 export default function Pricing() {
-  useDocumentTitle("Subscriptions & Pricing | Serasé");
+  usePageMeta(
+    "Subscriptions & Pricing | Serasé",
+    "Compare Serasé Core, Select, Elite and Signature plans across weekly, monthly and 3-month billing options."
+  );
 
   const shouldReduceMotion = useReducedMotion();
   const stagger = getStaggerContainer(shouldReduceMotion);
   const fadeUp = getFadeUpItem(shouldReduceMotion);
-
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
-  const [isBillingModalOpen, setIsBillingModalOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<{ name: string; price: string; period: string } | null>(null);
-
-  const handlePlanPay = (planName: string, price: string, period: string) => {
-    setSelectedPlan({ name: planName, price, period });
-    setIsBillingModalOpen(true);
-  };
-
-  const rawPlans = [
-    {
-      name: "Serase Core", description: "Basic entry for authentic dating.", badge: null, isFeatured: false, isSignature: false,
-      pricing: { weekly: { price: "Free", period: "", subtext: "30 likes/day" }, monthly: { price: "Free", period: "", subtext: "30 likes/day" }, quarterly: { price: "Free", period: "", subtext: "30 likes/day" } },
-      features: ["30 Daily Likes", "Basic Text Chat", "Community Verification"], buttonText: "Current Plan", buttonVariant: "outline"
-    },
-    {
-      name: "Serase Select", description: "More flexibility & unlimited messaging.", badge: null, isFeatured: false, isSignature: false,
-      pricing: { weekly: { price: "RM 6.99", period: "/week", subtext: "Billed weekly" }, monthly: { price: "RM 14.99", period: "/month", subtext: "RM 3.50/week (Save 50%)" }, quarterly: { price: "RM 26.99", period: "/3 months", subtext: "RM 2.10/week (Save 70%)" } },
-      features: ["100 Daily Likes", "Unlimited Text Chat", "Photo Messaging", "5 Message Retracts/Month"], buttonText: "Pay with Mobile Bill", buttonVariant: "light"
-    },
-    {
-      name: "Serase Elite", description: "Best balance for serious match seekers.", badge: "MOST POPULAR", isFeatured: true, isSignature: false,
-      pricing: { weekly: { price: "RM 18.99", period: "/week", subtext: "Billed weekly" }, monthly: { price: "RM 39.99", period: "/month", subtext: "RM 9.34/week (Save 51%)" }, quarterly: { price: "RM 59.99", period: "/3 months", subtext: "RM 4.67/week (Save 75%)" } },
-      features: ["250 Daily Likes", "Unlimited Text & Photo Chat", "Voice & Video Calls", "Custom Privacy Controls", "See Who Liked You"], buttonText: "Pay with Mobile Bill", buttonVariant: "primary"
-    },
-    {
-      name: "Serase Signature", description: "The ultimate VIP dating experience.", badge: "ULTIMATE VIP", isFeatured: false, isSignature: true,
-      pricing: { weekly: { price: "RM 44.99", period: "/week", subtext: "Billed weekly" }, monthly: { price: "RM 89.99", period: "/month", subtext: "RM 21.03/week (Save 53%)" }, quarterly: { price: "RM 114.99", period: "/3 months", subtext: "RM 8.95/week (Save 80%)" } },
-      features: ["500 Daily Likes (Unlimited)", "Incognito Profile Mode", "Global Passport Location", "Omar AI Dating Coach", "Read Receipts & Priority Matching"], buttonText: "Go Signature (Mobile)", buttonVariant: "gold"
-    }
-  ];
-
-  const cycles: { id: BillingCycle; label: string; tag?: { text: string; colorClass: string } }[] = [
-    { id: 'weekly', label: 'Weekly' },
-    { id: 'monthly', label: 'Monthly', tag: { text: 'Save 50%', colorClass: 'bg-amber-300 text-gray-900' } },
-    { id: 'quarterly', label: '3 Months', tag: { text: 'Save 80%', colorClass: 'bg-rose-500 text-white' } }
-  ];
+  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
+  const handleClosePlan = useCallback(() => setSelectedPlan(null), []);
+  const planDialogRef = useFocusTrap(!!selectedPlan, handleClosePlan);
 
   return (
-    <div className="min-h-screen bg-background selection:bg-accent/30 selection:text-primary pt-12 pb-32 relative overflow-x-hidden">
-      <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-br from-rose-500/10 via-amber-500/10 to-primary/10 rounded-full blur-[140px] -z-10 pointer-events-none"></div>
+    <main className="relative min-h-screen bg-background pb-32 pt-20 md:pt-24">
+      <div className="pointer-events-none absolute left-1/2 top-20 -z-10 h-[420px] w-[820px] -translate-x-1/2 rounded-full bg-gradient-to-br from-rose-500/10 via-amber-500/10 to-primary/10 blur-[140px]" />
 
-      <div className="max-w-7xl mx-auto px-6">
-        <motion.div initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 15 }} animate={{ opacity: 1, y: 0 }} className="text-center max-w-3xl mx-auto space-y-4 mb-10">
-          <div className="inline-flex items-center gap-2 bg-primary/5 border border-primary/15 px-4 py-1.5 rounded-full text-primary text-xs font-extrabold tracking-widest uppercase shadow-sm">
-            <Sparkles className="w-3.5 h-3.5" /> Direct Carrier Billing
-          </div>
-          <h1 className="text-5xl md:text-6xl font-black text-gray-900 tracking-tight">Subscriptions</h1>
-          <p className="text-lg text-muted-foreground font-medium">Seamlessly charged to your monthly phone bill or prepaid mobile balance.</p>
-          <div className="inline-flex items-center gap-3 bg-amber-50/80 border border-amber-200/80 px-5 py-2.5 rounded-2xl text-xs font-bold text-amber-900 mt-2 shadow-sm">
-            <Smartphone className="w-4 h-4 text-amber-600 shrink-0" /><span>Pay easily via Celcom, Digi, Maxis, U Mobile & global carriers</span>
-          </div>
-        </motion.div>
-
-        <div className="flex justify-center mb-16">
-          <div className="bg-gray-200/60 p-1.5 rounded-2xl flex items-center gap-1 border border-gray-300/50 shadow-inner relative">
-            {cycles.map((cycle) => {
-              const isActive = billingCycle === cycle.id;
-              const activeTextColor = cycle.id === 'quarterly' ? 'text-white' : cycle.id === 'monthly' ? 'text-white' : 'text-gray-900';
-              return (
-                <button
-                  key={cycle.id}
-                  onClick={() => setBillingCycle(cycle.id)}
-                  className={`relative px-5 py-2 rounded-xl text-xs font-black transition-colors duration-300 flex items-center gap-1.5 z-10 ${isActive ? activeTextColor : 'text-gray-600 hover:text-gray-900'}`}
-                >
-                  {isActive && !shouldReduceMotion && (
-                    <motion.div layoutId="pricing-tab-indicator" className={`absolute inset-0 rounded-xl -z-10 shadow-md ${cycle.id === 'quarterly' ? 'bg-gray-900' : cycle.id === 'monthly' ? 'bg-primary' : 'bg-white'}`} transition={{ type: "spring", bounce: 0.2, duration: 0.5 }} />
-                  )}
-                  {isActive && shouldReduceMotion && (
-                     <div className={`absolute inset-0 rounded-xl -z-10 shadow-md ${cycle.id === 'quarterly' ? 'bg-gray-900' : cycle.id === 'monthly' ? 'bg-primary' : 'bg-white'}`} />
-                  )}
-                  {cycle.label}
-                  {cycle.tag && <span className={`${cycle.tag.colorClass} text-[9px] px-1.5 py-0.5 rounded-md font-extrabold`}>{cycle.tag.text}</span>}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* 🚀 卡片网格的交错入场 */}
-        <motion.div 
-          variants={stagger}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, margin: "-50px" }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 items-stretch relative z-10"
+      <div className="serase-container-hero px-6">
+        <motion.header
+          initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mx-auto max-w-3xl text-center"
         >
-          {rawPlans.map((plan, idx) => {
-            const currentPricing = plan.pricing[billingCycle];
+          <div className="serase-eyebrow serase-eyebrow-pill">
+            <Sparkles className="h-3.5 w-3.5" /> Plans & Pricing
+          </div>
+          <h1 className="serase-h1 mt-4">Choose your plan.</h1>
+          <p className="serase-lead mx-auto mt-4 max-w-2xl">
+            Start free. Upgrade anytime for more features and privacy.
+          </p>
+          <p className="mx-auto mt-4 max-w-xl text-[12px] font-semibold leading-[1.6] text-muted-foreground">
+            Choose weekly, monthly or 3-month billing.
+          </p>
+        </motion.header>
+
+        <motion.div
+          initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: shouldReduceMotion ? 0 : 0.08 }}
+          className="mx-auto mt-8 flex w-full max-w-[430px] items-center rounded-full border border-[#E2D5CE] bg-white/70 p-1.5 shadow-[0_10px_28px_rgba(91,58,49,0.08)] backdrop-blur-md"
+          role="tablist"
+          aria-label="Billing cycle"
+        >
+          {([
+            ["weekly", "Weekly"],
+            ["monthly", "Monthly"],
+            ["3months", "3 Months"],
+          ] as const).map(([value, label]) => {
+            const active = billingCycle === value;
             return (
-              <motion.div
-                key={idx}
-                variants={fadeUp}
-                whileHover={shouldReduceMotion ? {} : { y: -6, transition: { duration: 0.2 } }}
-                className={`rounded-[2.5rem] p-7 transition-all duration-300 flex flex-col justify-between relative ${
-                  plan.isSignature
-                    ? 'bg-gradient-to-b from-rose-950 via-primary to-rose-950 text-white shadow-2xl shadow-rose-950/40 border-2 border-amber-400/40 lg:-translate-y-2'
-                    : plan.isFeatured
-                    ? 'bg-white border-2 border-primary/30 shadow-2xl shadow-primary/10 lg:-translate-y-1'
-                    : 'bg-white/90 border border-gray-200/80 shadow-lg shadow-gray-200/50 hover:shadow-xl'
+              <button
+                key={value}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setBillingCycle(value)}
+                className={`relative flex-1 rounded-full px-4 py-2.5 text-[12px] font-black transition-colors ${
+                  active ? "text-white" : "text-[#6D5E58] hover:text-[#8A2128]"
                 }`}
               >
-                {plan.isSignature && !shouldReduceMotion && (
-                  <div className="absolute inset-0 rounded-[2.5rem] overflow-hidden pointer-events-none z-0">
-                    <motion.div animate={{ x: ['-200%', '300%'] }} transition={{ repeat: Infinity, duration: 4, ease: "linear", repeatDelay: 3 }} className="absolute top-0 bottom-0 -left-1/2 w-1/2 bg-gradient-to-r from-transparent via-white/15 to-transparent skew-x-[30deg]" />
-                  </div>
+                {active && (
+                  <motion.span
+                    layoutId="pricing-billing-cycle"
+                    className="absolute inset-0 -z-10 rounded-full bg-[#8A2128] shadow-[0_7px_16px_rgba(138,33,40,0.20)]"
+                    transition={{ duration: shouldReduceMotion ? 0 : 0.24, ease: [0.22, 1, 0.36, 1] }}
+                  />
                 )}
-                {plan.badge && (
-                  <div className={`absolute -top-3.5 left-1/2 -translate-x-1/2 text-[10px] font-black uppercase px-4 py-1 rounded-full tracking-widest shadow-md flex items-center gap-1 z-10 ${plan.isSignature ? 'bg-gradient-to-r from-amber-300 to-amber-500 text-gray-900' : 'bg-primary text-white'}`}>
-                    {plan.isSignature ? <Crown className="w-3 h-3 fill-current" /> : <Zap className="w-3 h-3 fill-current" />}
-                    {plan.badge}
-                  </div>
-                )}
-
-                <div className="space-y-6 relative z-10">
-                  <div>
-                    <h3 className={`text-xl font-black ${plan.isSignature ? 'text-amber-300' : 'text-gray-900'}`}>{plan.name}</h3>
-                    <p className={`text-xs mt-1 font-medium ${plan.isSignature ? 'text-white/70' : 'text-muted-foreground'}`}>{plan.description}</p>
-                  </div>
-                  <div className="pt-2 pb-4 border-b border-gray-100/10">
-                    <div className="flex items-baseline gap-1">
-                      <span className={`text-3xl lg:text-4xl font-black tracking-tight ${plan.isSignature ? 'text-white' : 'text-gray-900'}`}>{currentPricing.price}</span>
-                      <span className={`text-xs font-extrabold ${plan.isSignature ? 'text-amber-300/80' : 'text-muted-foreground'}`}>{currentPricing.period}</span>
-                    </div>
-                    <p className={`text-[11px] font-bold mt-1.5 ${plan.isSignature ? 'text-amber-200' : 'text-primary'}`}>{currentPricing.subtext}</p>
-                    {plan.pricing[billingCycle].price !== "Free" && (
-                      <p className={`text-[10px] font-semibold mt-1 flex items-center gap-1 opacity-80 ${plan.isSignature ? 'text-white/80' : 'text-gray-500'}`}><Smartphone className="w-3 h-3" /> Direct Mobile Billing</p>
-                    )}
-                  </div>
-                  <ul className="space-y-3.5 pt-2">
-                    {plan.features.map((feat, fIdx) => (
-                      <li key={fIdx} className="flex items-start gap-3 text-xs font-semibold leading-relaxed">
-                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${plan.isSignature ? 'bg-amber-400/20 text-amber-300' : 'bg-primary/10 text-primary'}`}><Check className="w-3 h-3 stroke-[3]" /></div>
-                        <span className={plan.isSignature ? 'text-white/90' : 'text-gray-700'}>{feat}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="pt-8 mt-auto relative z-10">
-                  {plan.buttonVariant === 'outline' && <button disabled className="w-full py-3.5 px-4 rounded-2xl font-black text-xs border-2 border-primary/30 text-primary bg-primary/5 cursor-default opacity-80">{plan.buttonText}</button>}
-                  {plan.buttonVariant === 'light' && <button onClick={() => handlePlanPay(plan.name, currentPricing.price, currentPricing.period || '/month')} className="w-full py-3.5 px-4 rounded-2xl font-black text-xs bg-amber-100/70 hover:bg-amber-100 text-amber-900 transition-all hover:scale-[1.02] active:scale-95 shadow-sm flex items-center justify-center gap-2"><Smartphone className="w-4 h-4" />{plan.buttonText}</button>}
-                  {plan.buttonVariant === 'primary' && <button onClick={() => handlePlanPay(plan.name, currentPricing.price, currentPricing.period || '/month')} className="w-full py-3.5 px-4 rounded-2xl font-black text-xs bg-primary hover:bg-primary/90 text-white transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-primary/25 flex items-center justify-center gap-2"><Smartphone className="w-4 h-4" />{plan.buttonText}</button>}
-                  {plan.buttonVariant === 'gold' && <button onClick={() => handlePlanPay(plan.name, currentPricing.price, currentPricing.period || '/month')} className="w-full py-3.5 px-4 rounded-2xl font-black text-xs bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500 hover:brightness-110 text-gray-900 transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-amber-500/25 flex items-center justify-center gap-2"><Crown className="w-3.5 h-3.5 fill-current" />{plan.buttonText}</button>}
-                </div>
-              </motion.div>
+                <span className="relative z-10">{label}</span>
+              </button>
             );
           })}
         </motion.div>
 
-        <motion.div variants={fadeUp} initial="hidden" whileInView="show" className="mt-16 bg-white/80 border border-gray-200/80 rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-md">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-bold"><CreditCard className="w-6 h-6" /></div>
-            <div>
-              <h4 className="text-base font-black text-gray-900">Direct Carrier Billing Available</h4>
-              <p className="text-xs text-muted-foreground font-medium">Pay directly via your CelcomDigi, Maxis, or U Mobile monthly phone bill.</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 text-xs font-extrabold text-green-600 bg-green-50 px-4 py-2 rounded-xl border border-green-100">
-            <ShieldCheck className="w-4 h-4" /> 100% Safe & Instant Activation
-          </div>
-        </motion.div>
-      </div>
+        <div id="pricing-plans" className="relative mt-10 min-h-[590px]">
+          <motion.div
+            variants={stagger}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: "-50px" }}
+            className={`grid grid-cols-1 gap-6 transition-[filter,opacity] duration-300 sm:grid-cols-2 xl:grid-cols-4 ${
+              selectedPlan ? "pointer-events-none opacity-20 blur-[2px]" : ""
+            }`}
+            aria-hidden={selectedPlan ? "true" : undefined}
+          >
+            {plans.map((plan) => {
+              const styles = planStyles[plan.tone];
+              const activePrice = plan.prices[billingCycle];
 
-      <CarrierBillingModal isOpen={isBillingModalOpen} onClose={() => setIsBillingModalOpen(false)} selectedPlan={selectedPlan} />
-    </div>
+              return (
+                <motion.article
+                  key={plan.name}
+                  variants={fadeUp}
+                  className={`relative flex min-h-[520px] flex-col rounded-serase-section p-7 serase-interact-card ${styles.card}`}
+                >
+                  {plan.featured && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#6C1722] px-4 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white shadow-sm">
+                      Most Popular
+                    </div>
+                  )}
+                  {plan.signature && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 rounded-full bg-[#FFD047] px-4 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#4A2D13] shadow-sm">
+                      <Crown className="h-3 w-3" /> Signature
+                    </div>
+                  )}
+
+                  <div>
+                    <h2 className={`text-xl font-black ${styles.title}`}>{plan.name}</h2>
+                    <p className={`mt-2 min-h-[64px] text-[13px] font-medium leading-[1.65] ${styles.description}`}>
+                      {plan.description}
+                    </p>
+
+                    <div className={`mt-6 border-b pb-6 ${styles.divider}`}>
+                      <div className="flex items-baseline gap-1">
+                        <AnimatePresence mode="wait" initial={false}>
+                          <motion.span
+                            key={`${plan.name}-${billingCycle}-price`}
+                            initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
+                            transition={{ duration: shouldReduceMotion ? 0 : 0.18 }}
+                            className={`text-4xl font-black tracking-[-0.04em] ${styles.price}`}
+                          >
+                            {activePrice.price}
+                          </motion.span>
+                        </AnimatePresence>
+                        <span className={`text-xs font-bold ${styles.period}`}>{activePrice.period}</span>
+                      </div>
+                    </div>
+
+                    <ul className="mt-7 space-y-4">
+                      {plan.features.map((feature) => (
+                        <li key={feature} className="flex items-start gap-3 text-[13px] font-semibold leading-[1.6]">
+                          <div className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${styles.check}`}>
+                            <Check className="h-3 w-3 stroke-[3]" />
+                          </div>
+                          <span className={styles.feature}>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="mt-auto space-y-3 pt-8">
+                    <div className={`serase-btn-action flex min-h-11 items-center justify-center px-4 py-2.5 text-center text-[11px] font-black ${styles.status}`}>
+                      Available at launch
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPlan(plan)}
+                      className={`serase-btn-action group flex min-h-12 w-full items-center justify-center gap-2 px-4 py-3 text-center text-xs font-black transition-colors ${styles.learn}`}
+                      aria-label={`Learn more about ${plan.name}`}
+                    >
+                      Learn more
+                      <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
+                    </button>
+                  </div>
+                </motion.article>
+              );
+            })}
+          </motion.div>
+
+          <AnimatePresence>
+            {selectedPlan && (() => {
+              const styles = planStyles[selectedPlan.tone];
+              const activeSelectedPrice = selectedPlan.prices[billingCycle];
+
+              return (
+                <motion.div
+                  key={selectedPlan.name}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: shouldReduceMotion ? 0 : 0.2 }}
+                  className="absolute inset-0 z-30 flex items-start justify-center overflow-y-auto rounded-[2.75rem] bg-background/88 p-3 py-6 backdrop-blur-[12px] sm:items-center sm:p-6 sm:py-6 lg:p-8"
+                  onClick={handleClosePlan}
+                  role="presentation"
+                >
+                  <motion.div
+                    ref={planDialogRef}
+                    tabIndex={-1}
+                    initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.985 }}
+                    transition={{ duration: shouldReduceMotion ? 0 : 0.3, ease: [0.22, 1, 0.36, 1] }}
+                    onClick={(event) => event.stopPropagation()}
+                    className={`relative my-auto flex w-full max-w-[1120px] flex-col overflow-hidden rounded-[2.75rem] p-7 outline-none sm:p-9 lg:min-h-[520px] lg:p-12 ${styles.card}`}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={`${selectedPlan.name} plan details`}
+                  >
+                    <button
+                      type="button"
+                      onClick={handleClosePlan}
+                      aria-label="Close plan details"
+                      className={`absolute right-5 top-5 z-20 flex h-11 w-11 items-center justify-center rounded-full transition-colors sm:right-7 sm:top-7 ${
+                        selectedPlan.tone === "elite" || selectedPlan.tone === "signature"
+                          ? "bg-white/12 text-white hover:bg-white/20"
+                          : "bg-white/70 text-[#493B37] hover:bg-white"
+                      }`}
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+
+                    <div className="grid flex-1 items-start gap-8 pr-10 lg:grid-cols-[0.88fr_1.12fr] lg:gap-14 lg:pr-0">
+                      <div>
+                        <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${styles.detailEyebrow}`}>
+                          About this plan
+                        </div>
+                        <h2 className={`mt-3 text-[34px] font-black leading-[1] tracking-[-0.04em] sm:text-[42px] ${styles.title}`}>
+                          {selectedPlan.name}
+                        </h2>
+                        <p className={`mt-4 max-w-md text-[15px] font-medium leading-[1.75] ${styles.description}`}>
+                          {selectedPlan.description}
+                        </p>
+
+                        <div className={`mt-8 border-b pb-7 ${styles.divider}`}>
+                          <div className="flex flex-wrap items-baseline gap-2">
+                            <span className={`text-[50px] font-black leading-none tracking-[-0.055em] sm:text-[62px] ${styles.price}`}>
+                              {activeSelectedPrice.price}
+                            </span>
+                            <span className={`text-sm font-bold ${styles.period}`}>{activeSelectedPrice.period}</span>
+                          </div>
+                        </div>
+
+                        <div className="mt-7 flex flex-wrap items-center gap-2">
+                          <div className={`inline-flex min-h-11 items-center justify-center rounded-full px-5 text-[11px] font-black ${styles.status}`}>
+                            Available at launch
+                          </div>
+                          {selectedPlan.tone !== "core" && (
+                            <div className={`inline-flex min-h-11 items-center justify-center rounded-full px-5 text-[11px] font-black ${styles.status}`}>
+                              {billingCycle === "weekly" ? "Weekly" : billingCycle === "monthly" ? "Monthly" : "3 Months"}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className={`rounded-[2rem] p-6 sm:p-7 ${
+                        selectedPlan.tone === "elite" || selectedPlan.tone === "signature"
+                          ? "bg-white/8 ring-1 ring-white/12"
+                          : "bg-white/58 ring-1 ring-black/5"
+                      }`}>
+                        <div className={`text-[11px] font-black uppercase tracking-[0.16em] ${styles.detailEyebrow}`}>
+                          What&apos;s included
+                        </div>
+
+                        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                          {selectedPlan.features.map((feature) => (
+                            <div
+                              key={feature}
+                              className={`flex min-h-[76px] items-center gap-3 rounded-[1.35rem] px-4 py-3 ${
+                                selectedPlan.tone === "elite" || selectedPlan.tone === "signature"
+                                  ? "bg-white/7 ring-1 ring-white/10"
+                                  : "bg-white/70 ring-1 ring-black/5"
+                              }`}
+                            >
+                              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${styles.check}`}>
+                                <Check className="h-4 w-4 stroke-[3]" />
+                              </div>
+                              <span className={`text-[13px] font-bold leading-[1.45] ${styles.feature}`}>{feature}</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        <p className={`mt-6 text-[12px] font-medium leading-[1.7] ${styles.description}`}>
+                          You can view plan details here. Subscriptions will be available when payments go live.
+                        </p>
+                      </div>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              );
+            })()}
+          </AnimatePresence>
+        </div>
+
+        <div className="mx-auto mt-14 flex max-w-3xl items-start gap-4 rounded-serase-sm border serase-card-border bg-white/75 p-6">
+          <div className="serase-icon-sm shrink-0 rounded-xl bg-primary/8 text-primary">
+            <ShieldCheck className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-[15px] font-black text-serase-heading">Purchases are not available on the website yet.</h2>
+            <p className="mt-1 text-[13px] font-medium leading-[1.65] text-muted-foreground">
+              You’ll be able to subscribe when payment is available at launch.
+            </p>
+          </div>
+        </div>
+      </div>
+    </main>
   );
 }
