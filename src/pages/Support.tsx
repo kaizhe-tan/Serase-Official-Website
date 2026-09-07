@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { Mail, MapPin, Phone, MessageCircleQuestion, ArrowRight, CheckCircle2, Loader2 } from 'lucide-react';
+import { Mail, MapPin, Phone, CheckCircle2, Loader2 } from 'lucide-react';
 import { useDocumentTitle } from '../hooks/usePageMeta';
 import { motion, Variants, AnimatePresence } from 'framer-motion';
-import { Link } from 'react-router';
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -23,11 +22,27 @@ export default function Support() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+
+    /*
+     * TODO — CONNECT SUPPORT BACKEND
+     *
+     * Replace this mock with a real ticket/email route before launch.
+     * The "within 24 hours" SLA copy below the confirmation message is a
+     * real promise once this ships — confirm it with Support ops, or
+     * remove it, before connecting a real endpoint.
+     *
+     * const response = await supportApi.submitTicket({ firstName, lastName, email, message });
+     * if (response.ok) setIsSubmitted(true);
+     */
     
     setTimeout(() => {
       setIsSubmitting(false);
       setIsSubmitted(true);
     }, 1500);
+  };
+
+  const tapeStyle = { 
+    backgroundImage: 'linear-gradient(45deg, rgba(255,255,255,0.2) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.2) 75%, transparent 75%, transparent)' 
   };
 
   return (
@@ -42,42 +57,25 @@ export default function Support() {
         className="max-w-6xl mx-auto px-6 flex flex-col gap-8"
       >
         
-        <motion.div variants={itemVariants} className="text-center max-w-3xl mx-auto mb-4">
+        <motion.div variants={itemVariants} className="text-center max-w-3xl mx-auto mb-4 mt-8">
           <h1 className="text-4xl md:text-[3.5rem] font-black text-gray-900 tracking-tight mb-6">
             Help & Support
           </h1>
           <p className="text-lg text-gray-500 font-medium">
-            We are here to assist you. Check our FAQ or reach out directly below.
+            We are here to assist you. Reach out to us directly below.
           </p>
         </motion.div>
 
-        <motion.div variants={itemVariants}>
-          <div className="bg-white rounded-[2rem] p-8 md:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-gray-100 flex flex-col sm:flex-row items-center justify-between text-left gap-6 group hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-shadow">
-            <div className="flex items-center gap-6">
-              <div className="w-16 h-16 rounded-2xl bg-primary/5 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                <MessageCircleQuestion className="w-8 h-8 stroke-[2.5]" />
-              </div>
-              <div>
-                <h3 className="text-xl md:text-2xl font-black text-gray-900 mb-2 tracking-tight">Frequently Asked Questions</h3>
-                <p className="text-sm text-gray-500 font-medium">Find instant answers about payments, ID verification, and our AI features.</p>
-              </div>
-            </div>
-            <Link to="/faq" className="shrink-0 w-full sm:w-auto bg-white border-2 border-gray-100 text-gray-700 hover:border-primary hover:text-primary hover:bg-primary/5 px-8 py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-2">
-              Browse FAQ <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </motion.div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-6">
           
-          {/* 🚀 核心修改：改为 motion.a，加入 href 链接和 hover 加深阴影 */}
           <motion.a 
             href="https://maps.google.com/?q=Netmedias+Leashares+Phileo+Damansara+Selangor" 
             target="_blank" 
             rel="noopener noreferrer"
             variants={itemVariants} 
-            className="bg-white rounded-[2rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-gray-100 flex flex-col items-center text-center hover:-translate-y-1 hover:shadow-[0_12px_40px_rgb(0,0,0,0.06)] transition-all group cursor-pointer block"
+            className="bg-white rounded-[2rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-gray-100 flex flex-col items-center text-center hover:-translate-y-1 hover:shadow-[0_12px_40px_rgb(0,0,0,0.06)] transition-all group cursor-pointer block relative"
           >
+            <div className="absolute -top-3 left-[30%] -translate-x-1/2 w-12 h-6 bg-white/60 backdrop-blur-sm border border-gray-200 shadow-sm rotate-2 z-20 rounded-sm" style={tapeStyle}></div>
             <div className="w-14 h-14 rounded-2xl bg-primary/5 text-primary flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
               <MapPin className="w-6 h-6 stroke-[2]" />
             </div>
@@ -90,34 +88,38 @@ export default function Support() {
             </div>
           </motion.a>
 
-          <motion.div variants={itemVariants} className="bg-white rounded-[2rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-gray-100 flex flex-col items-center text-center hover:-translate-y-1 transition-transform group">
+          {/* 🚀 修复区域：补齐了 Phone 卡片的 hover:shadow 和 transition-all，并加上了 group-hover:text-primary */}
+          <motion.div variants={itemVariants} className="bg-white rounded-[2rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-gray-100 flex flex-col items-center text-center hover:-translate-y-1 hover:shadow-[0_12px_40px_rgb(0,0,0,0.06)] transition-all group relative">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-12 h-6 bg-white/60 backdrop-blur-sm border border-gray-200 shadow-sm -rotate-2 z-20 rounded-sm" style={tapeStyle}></div>
             <div className="w-14 h-14 rounded-2xl bg-primary/5 text-primary flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
               <Phone className="w-6 h-6 stroke-[2]" />
             </div>
-            <h3 className="text-lg font-black text-gray-900 mb-4 tracking-tight">Phone</h3>
+            <h3 className="text-lg font-black text-gray-900 mb-4 tracking-tight group-hover:text-primary transition-colors">Phone</h3>
             <div className="text-sm text-gray-500 font-medium leading-relaxed space-y-4 w-full">
               <div>
                 <p className="font-bold text-gray-700 mb-1">General Inquiries</p>
                 <p>+60 3-1234 5678</p>
               </div>
-              <div className="pt-4 border-t border-gray-100">
-                <p className="font-bold text-gray-700 mb-1">24/7 Support</p>
+              <div className="pt-4 border-t border-dashed border-gray-200">
+                <p className="font-bold text-gray-700 mb-1">Support Line</p>
                 <p>+60 3-8765 4321</p>
               </div>
             </div>
           </motion.div>
 
-          <motion.div variants={itemVariants} className="bg-white rounded-[2rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-gray-100 flex flex-col items-center text-center hover:-translate-y-1 transition-transform group">
+          {/* 🚀 修复区域：补齐了 Email 卡片的 hover:shadow 和 transition-all，并加上了 group-hover:text-primary */}
+          <motion.div variants={itemVariants} className="bg-white rounded-[2rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-gray-100 flex flex-col items-center text-center hover:-translate-y-1 hover:shadow-[0_12px_40px_rgb(0,0,0,0.06)] transition-all group relative">
+            <div className="absolute -top-3 left-[70%] -translate-x-1/2 w-12 h-6 bg-white/60 backdrop-blur-sm border border-gray-200 shadow-sm rotate-1 z-20 rounded-sm" style={tapeStyle}></div>
             <div className="w-14 h-14 rounded-2xl bg-primary/5 text-primary flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
               <Mail className="w-6 h-6 stroke-[2]" />
             </div>
-            <h3 className="text-lg font-black text-gray-900 mb-4 tracking-tight">Email</h3>
+            <h3 className="text-lg font-black text-gray-900 mb-4 tracking-tight group-hover:text-primary transition-colors">Email</h3>
             <div className="text-sm text-gray-500 font-medium leading-relaxed space-y-4 w-full">
               <div>
                 <p className="font-bold text-gray-700 mb-1">Customer Support</p>
                 <a href="mailto:CS@seraseapp.com" className="hover:text-primary font-semibold transition-colors">CS@seraseapp.com</a>
               </div>
-              <div className="pt-4 border-t border-gray-100">
+              <div className="pt-4 border-t border-dashed border-gray-200">
                 <p className="font-bold text-gray-700 mb-1">Partnerships</p>
                 <a href="mailto:partners@seraseapp.com" className="hover:text-primary font-semibold transition-colors">partners@seraseapp.com</a>
               </div>
@@ -126,7 +128,10 @@ export default function Support() {
 
         </div>
 
-        <motion.div variants={itemVariants} className="mt-4">
+        <motion.div variants={itemVariants} className="mt-8 relative z-10">
+          
+          <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-24 h-8 bg-white/60 backdrop-blur-md border border-gray-200 shadow-sm -rotate-1 z-30 rounded-sm" style={tapeStyle}></div>
+
           <div className="bg-white rounded-[2.5rem] p-10 md:p-14 shadow-[0_12px_40px_rgb(0,0,0,0.04)] border border-gray-100 flex flex-col lg:flex-row gap-12 lg:gap-20 relative overflow-hidden min-h-[480px]">
             
             <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-amber-50/50 rounded-full blur-[80px] pointer-events-none translate-y-1/2 translate-x-1/3"></div>
@@ -174,7 +179,9 @@ export default function Support() {
                   >
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                       <div className="relative">
+                        <label htmlFor="support-first-name" className="sr-only">First Name</label>
                         <input 
+                          id="support-first-name"
                           type="text" 
                           placeholder="First Name" 
                           required
@@ -183,7 +190,9 @@ export default function Support() {
                         />
                       </div>
                       <div className="relative">
+                        <label htmlFor="support-last-name" className="sr-only">Last Name</label>
                         <input 
+                          id="support-last-name"
                           type="text" 
                           placeholder="Last Name" 
                           disabled={isSubmitting}
@@ -193,7 +202,9 @@ export default function Support() {
                     </div>
 
                     <div className="relative">
+                      <label htmlFor="support-email" className="sr-only">Email Address</label>
                       <input 
+                        id="support-email"
                         type="email" 
                         placeholder="Email Address" 
                         required
@@ -203,7 +214,9 @@ export default function Support() {
                     </div>
 
                     <div className="relative">
+                      <label htmlFor="support-message" className="sr-only">How can we help you?</label>
                       <textarea 
+                        id="support-message"
                         placeholder="How can we help you?" 
                         rows={5} 
                         required
