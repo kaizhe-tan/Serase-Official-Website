@@ -1,385 +1,798 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, Target, MessageCircle, Send, Star, Compass, Coffee, Palette, BadgeCheck, Mail, ArrowRight, CheckCircle2, Loader2 } from 'lucide-react';
-import { motion, AnimatePresence, useReducedMotion, useMotionValue, useTransform, useSpring } from 'framer-motion'; 
-import DownloadModal from '../components/DownloadModal';
-import { useDocumentTitle } from '../hooks/usePageMeta';
+import React, { useRef, useState } from 'react';
+import { Link } from 'react-router';
+import { Sparkles, Star, ArrowRight, MapPin, MessageCircle, ShieldCheck, Clock3, CalendarCheck2, MousePointerClick } from 'lucide-react';
+import { motion, useReducedMotion } from 'framer-motion'; 
+import { useToast } from '../context/ToastContext';
+import { usePageMeta } from "../hooks/usePageMeta";
 import { getStaggerContainer, getFadeUpItem } from '../utils/animations';
 
-import cherryLogo from '../../.figma/attachments/image-0.png';
-import newsletterBg from '../../.figma/attachments/image-1.png';
+import seraseLogo from '../../.figma/attachments/image-0.png';
+import seraseHowItWorksBg from '../../.figma/attachments/serase-how-it-works.png';
+import seraseHeroPhoto1 from '../../.figma/attachments/serase-hero-photo-01.png';
+import seraseHeroPhoto2 from '../../.figma/attachments/serase-hero-photo-02.png';
+import seraseHeroPhoto3 from '../../.figma/attachments/serase-hero-photo-03.png';
 
 export default function Home() {
-  useDocumentTitle("Serasé | Real People. Real Connections.");
+  usePageMeta("Serasé | Real People. Real Connections.", "Meet verified people, build real connections, get private AI help, and plan dates with Serasé.");
+  const { showToast } = useToast();
   
   const shouldReduceMotion = useReducedMotion();
   const stagger = getStaggerContainer(shouldReduceMotion);
   const fadeUp = getFadeUpItem(shouldReduceMotion);
 
-  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
-  const [downloadPlatform, setDownloadPlatform] = useState<'ios' | 'android'>('ios');
-  
-  const openDownloadModal = (platform: 'ios' | 'android') => {
-    setDownloadPlatform(platform);
-    setIsDownloadModalOpen(true);
+  // One-time "hover an icon" hint for the journey map — shows once when the
+  // section scrolls into view, then fades itself out after a few seconds.
+  const [journeyHintVisible, setJourneyHintVisible] = useState(true);
+  const journeyHintTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleStoreClick = (platform: 'ios' | 'android') => {
+    const platformName = platform === 'ios' ? 'iOS' : 'Android';
+    showToast(`Serasé for ${platformName} is coming soon.`);
   };
 
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const mouseX = useSpring(x, { stiffness: 150, damping: 15 });
-  const mouseY = useSpring(y, { stiffness: 150, damping: 15 });
-  
-  const rotateX = useTransform(mouseY, [-150, 150], [12, -12]);
-  const rotateY = useTransform(mouseX, [-150, 150], [-12, 12]);
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (shouldReduceMotion) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    x.set(e.clientX - centerX);
-    y.set(e.clientY - centerY);
-  };
-
-  const handleMouseLeave = () => {
-    if (shouldReduceMotion) return;
-    x.set(0);
-    y.set(0);
-  };
-
-  const [chatInput, setChatInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [hasUserInteracted, setHasUserInteracted] = useState(false);
-  const [messages, setMessages] = useState([
-    { role: 'ai', text: "Hi! I'm Omar, your AI Dating Coach. 🍒 Tell me about your match!" },
-    { role: 'user', text: "Help me write an icebreaker for A.L, she loves modern art & coffee!" },
-    { role: 'ai', text: "✨ Here's a charm line: 'If you could teleport to any gallery with a fresh pour-over right now, where are we heading?'" }
-  ]);
-  const chatEndRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (hasUserInteracted) {
-      chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-  }, [messages, isTyping, hasUserInteracted]);
-
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!chatInput.trim()) return;
-
-    setHasUserInteracted(true);
-    const userText = chatInput.trim();
-    setMessages(prev => [...prev, { role: 'user', text: userText }]);
-    setChatInput('');
-    setIsTyping(true);
-
-    setTimeout(() => {
-      setIsTyping(false);
-      let reply = "Smooth! Try sending this: 'I see you're a coffee addict too! ☕ What's your go-to spot in the city? Let's grab a cup this weekend!'";
-      const lowerInput = userText.toLowerCase();
-      
-      if (userText.length < 5) {
-        reply = "A bit too short! Try asking an open-ended question about their photos. 📸";
-      } else if (lowerInput.includes("joke")) {
-        reply = "Here's one: 'Are you a magician? Because whenever I look at your profile, everyone else disappears.' 😉";
-      } else if (lowerInput.includes("hello") || lowerInput.includes("hi")) {
-        reply = "A simple 'hi' is safe, but noticing a detail in their bio gets a 40% higher response rate! 💡";
-      }
-
-      setMessages(prev => [...prev, { role: 'ai', text: reply }]);
-    }, 1500);
-  };
-
-  const [subscribeStatus, setSubscribeStatus] = useState<'idle' | 'loading' | 'success'>('idle');
-
-  const handleSubscribe = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubscribeStatus('loading');
-    
-    setTimeout(() => {
-      setSubscribeStatus('success');
-      setTimeout(() => setSubscribeStatus('idle'), 5000); 
-    }, 1500);
-  };
-
-  const testimonials = [
-    { name: "Sarah & Mike", location: "Kuala Lumpur", text: "The 'Timed Connections' feature is a game-changer. It forced us to stop endlessly texting and actually meet up for coffee. Best first date ever!" },
-    { name: "David L.", location: "Singapore", text: "Omar the AI coach completely fixed my awkward texting. The icebreakers are actually natural and funny. 10/10 recommend." },
-    { name: "Emily & Chen", location: "Penang", text: "I love that everyone here is verified with MyDigital ID. No more fake profiles or scammers. It feels like a safe, premium space." }
-  ];
 
   return (
     <div className="min-h-screen bg-background selection:bg-accent/30 selection:text-primary overflow-x-hidden pt-8 pb-32 relative">
-      <section className="max-w-5xl mx-auto px-6 pt-10 pb-20 relative">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] bg-gradient-to-tr from-rose-500/20 via-amber-500/15 to-primary/20 rounded-full blur-[140px] -z-10 pointer-events-none animate-pulse-slow"></div>
-        <div className="absolute top-1/3 right-10 w-[350px] h-[350px] bg-rose-400/15 rounded-full blur-[100px] -z-10 pointer-events-none"></div>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&display=swap');
 
-        <motion.div variants={stagger} initial="hidden" animate="show" className="grid md:grid-cols-12 gap-8 items-center w-full">
-          <div className="md:col-span-7 space-y-8 text-center md:text-left">
-            <motion.div variants={fadeUp} className="inline-flex items-center gap-2 bg-primary/5 border border-primary/15 px-4 py-1.5 rounded-full text-primary text-xs font-bold tracking-wide uppercase shadow-sm backdrop-blur-sm">
-              <Sparkles className="w-3.5 h-3.5" /> The New Standard of Dating
+        .serase-caveat {
+          font-family: 'Caveat', cursive;
+          font-optical-sizing: auto;
+        }
+
+        /* Soft outward "ping" ring behind each journey icon — signals that
+           the circle is interactive without shouting over the photo. */
+        @keyframes seraseJourneyNodeCue {
+          0% {
+            box-shadow: 0 0 0 0 rgba(230, 181, 75, 0.55), 0 0 0 2px rgba(230, 181, 75, 0.28);
+            opacity: 1;
+          }
+          70% {
+            box-shadow: 0 0 0 15px rgba(230, 181, 75, 0), 0 0 0 2px rgba(230, 181, 75, 0.12);
+            opacity: 0.6;
+          }
+          100% {
+            box-shadow: 0 0 0 15px rgba(230, 181, 75, 0), 0 0 0 2px rgba(230, 181, 75, 0);
+            opacity: 0;
+          }
+        }
+
+        .serase-journey-cue-ring {
+          animation: seraseJourneyNodeCue 2.8s ease-out infinite;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .serase-journey-cue-ring {
+            animation: none !important;
+            display: none;
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .serase-css-motion {
+            animation: none !important;
+          }
+        }
+      `}</style>
+      <section className="relative isolate -mt-20 serase-container-hero px-6 pb-24 pt-[7.5rem] lg:pb-28 lg:pt-[8.5rem]">
+        {/* Cinematic hero atmosphere now continues behind the transparent full header. */}
+        <div className="pointer-events-none absolute inset-x-[-12vw] top-[-80px] z-0 h-[720px] overflow-hidden">
+          <motion.div
+            animate={shouldReduceMotion ? undefined : { scale: [0.96, 1.06, 0.96], opacity: [0.72, 1, 0.72] }}
+            transition={{ repeat: Infinity, duration: 9, ease: "easeInOut" }}
+            className="absolute left-[47%] top-[42%] h-[510px] w-[760px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle_at_center,rgba(184,62,76,0.19)_0%,rgba(226,164,131,0.14)_36%,rgba(232,191,111,0.08)_58%,transparent_74%)] blur-[58px]"
+          />
+          <div className="absolute left-[57%] top-[47%] h-[480px] w-[480px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#8A2128]/[0.055]" />
+          <div className="absolute left-[57%] top-[47%] h-[620px] w-[620px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#D4A66E]/[0.055]" />
+          <div className="absolute left-[57%] top-[47%] h-[770px] w-[770px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#8A2128]/[0.035]" />
+        </div>
+
+        <motion.div
+          variants={stagger}
+          initial="hidden"
+          animate="show"
+          className="relative z-10 grid min-h-[610px] w-full items-center gap-10 lg:grid-cols-[1.03fr_0.97fr]"
+        >
+          {/* Copy */}
+          <div className="relative z-10 mx-auto max-w-2xl text-center lg:mx-0 lg:text-left">
+            <motion.div
+              variants={fadeUp}
+              className="mb-7 inline-flex items-center gap-2 rounded-full border border-[#8A2128]/15 bg-white/55 px-4 py-2 serase-eyebrow text-[#8A2128] shadow-[0_8px_28px_rgba(90,46,41,0.05)] backdrop-blur-xl"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              A better way to date
             </motion.div>
-            <motion.div variants={fadeUp}>
-              <h1 className="text-5xl lg:text-6xl font-black text-gray-900 tracking-tight leading-[1.1]">
-                Real People. <br />
-                <span className="bg-gradient-to-r from-primary via-rose-700 to-amber-600 bg-clip-text text-transparent">Real Connections.</span>
+
+            <motion.div variants={fadeUp} className="relative">
+              <div className="pointer-events-none absolute -left-5 top-2 hidden h-28 w-[3px] rounded-full bg-gradient-to-b from-[#8A2128] via-[#C0474F] to-[#DDAA56] opacity-70 xl:block" />
+              <h1 className="text-[54px] font-black leading-[0.98] tracking-[-0.055em] text-serase-heading sm:text-6xl lg:text-[76px]">
+                Real People.
+                <br />
+                <span className="bg-gradient-to-r from-[#A21F2D] via-[#C71E3B] to-[#E56A0A] bg-clip-text text-transparent">
+                  Real Connections.
+                </span>
               </h1>
             </motion.div>
-            <motion.p variants={fadeUp} className="text-base lg:text-lg text-muted-foreground font-medium leading-relaxed max-w-lg mx-auto md:mx-0">
-              Experience dating without the noise. 100% verified profiles, AI-powered matchmaking, and timed connections that bring romance back to reality.
+
+            <motion.p
+              variants={fadeUp}
+              className="mx-auto mt-8 max-w-xl text-[17px] font-semibold leading-[1.8] text-muted-foreground lg:mx-0 lg:text-[18px]"
+            >
+              Meet verified people, have better conversations, and move from a match to a real date with less noise.
             </motion.p>
-            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center gap-4 justify-center md:justify-start pt-2">
-              <button onClick={() => openDownloadModal('ios')} className="bg-gray-900 text-white hover:bg-gray-800 px-6 py-3.5 rounded-2xl font-bold flex items-center gap-3.5 shadow-xl shadow-gray-900/10 transition-all hover:scale-105 active:scale-95 w-full sm:w-auto justify-center">
-                <div className="text-left"><div className="text-[10px] uppercase tracking-wider opacity-80 leading-tight">Download on the</div><div className="text-sm font-extrabold leading-tight">App Store</div></div>
+
+            <motion.div
+              variants={fadeUp}
+              className="mt-9 flex flex-col items-center gap-3 sm:flex-row lg:justify-start"
+            >
+              {/* Google Play — branded badge style, launch-safe copy */}
+              <button
+                type="button"
+                onClick={() => handleStoreClick('android')}
+                aria-label="Google Play — coming soon"
+                className="group flex h-[64px] w-full min-w-[214px] items-center gap-3 rounded-[12px] border border-black/10 bg-[#171717] px-5 text-white shadow-[0_14px_30px_rgba(17,24,39,0.16)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-black hover:shadow-[0_18px_34px_rgba(17,24,39,0.22)] active:translate-y-0 sm:w-auto"
+              >
+                <svg
+                  viewBox="0 0 48 48"
+                  aria-hidden="true"
+                  className="h-9 w-9 shrink-0"
+                >
+                  <path d="M5.3 4.7c-.8.9-1.3 2.2-1.3 3.8v31c0 1.6.5 2.9 1.3 3.8L25.6 24 5.3 4.7Z" fill="#00D9FF" />
+                  <path d="M32.4 17.5 8.3 3.8c-.9-.5-1.8-.6-2.5-.3L25.6 24l6.8-6.5Z" fill="#00F076" />
+                  <path d="M32.4 30.5 25.6 24 5.8 44.5c.7.3 1.6.2 2.5-.3l24.1-13.7Z" fill="#FFDB3A" />
+                  <path d="M43 23.2 35.4 19l-9.8 5 9.8 5 7.6-4.2c1.3-.8 1.3-2 0-2.6Z" fill="#FF4B55" />
+                </svg>
+
+                <div className="text-left">
+                  <div className="text-[9px] font-bold uppercase leading-none tracking-[0.08em] text-white/72">
+                    Coming soon on
+                  </div>
+                  <div className="mt-1 text-[21px] font-semibold leading-none tracking-[-0.02em]">
+                    Google Play
+                  </div>
+                </div>
               </button>
-              <button onClick={() => openDownloadModal('android')} className="bg-gray-900 text-white hover:bg-gray-800 px-6 py-3.5 rounded-2xl font-bold flex items-center gap-3.5 shadow-xl shadow-gray-900/10 transition-all hover:scale-105 active:scale-95 w-full sm:w-auto justify-center">
-                <div className="text-left"><div className="text-[10px] uppercase tracking-wider opacity-80 leading-tight">GET IT ON</div><div className="text-sm font-extrabold leading-tight">Google Play</div></div>
+
+              {/* App Store — branded badge style, launch-safe copy */}
+              <button
+                type="button"
+                onClick={() => handleStoreClick('ios')}
+                aria-label="App Store — coming soon"
+                className="group flex h-[64px] w-full min-w-[214px] items-center gap-3 rounded-[12px] border border-black/10 bg-[#171717] px-5 text-white shadow-[0_14px_30px_rgba(17,24,39,0.16)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-black hover:shadow-[0_18px_34px_rgba(17,24,39,0.22)] active:translate-y-0 sm:w-auto"
+              >
+                <svg
+                  viewBox="0 0 384 512"
+                  aria-hidden="true"
+                  className="h-9 w-9 shrink-0 fill-current"
+                >
+                  <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9Zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 52.1-12 69.5-34.3Z" />
+                </svg>
+
+                <div className="text-left">
+                  <div className="text-[9px] font-bold uppercase leading-none tracking-[0.08em] text-white/72">
+                    Coming soon on the
+                  </div>
+                  <div className="mt-1 text-[21px] font-semibold leading-none tracking-[-0.02em]">
+                    App Store
+                  </div>
+                </div>
               </button>
             </motion.div>
+
           </div>
 
-          <motion.div 
-            variants={fadeUp} 
-            className="md:col-span-5 relative flex justify-center md:justify-end items-center w-full [perspective:1000px]"
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
+          {/* Brand photo story — replaces the product phone mockup */}
+          <motion.div
+            variants={fadeUp}
+            className="relative mx-auto flex h-[540px] w-full max-w-[690px] items-center justify-center sm:h-[590px] lg:h-[610px]"
           >
-            <motion.div animate={{ y: shouldReduceMotion ? 0 : [0, -12, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }} className="absolute -right-4 lg:-right-8 top-10 z-30 bg-white/95 backdrop-blur-xl border border-rose-100 p-3.5 px-4 rounded-2xl shadow-2xl shadow-rose-900/20 flex items-center gap-3 pointer-events-none">
-              <div className="w-9 h-9 bg-white border border-rose-100/50 rounded-full flex items-center justify-center shadow-md shadow-rose-500/20 shrink-0">
-                <img src={cherryLogo} alt="Cherry Logo" className="w-5 h-5 object-contain" />
-              </div>
-              <div><p className="text-xs font-black text-gray-900">It's a Match!</p><p className="text-[10px] text-muted-foreground font-medium">You both liked each other.</p></div>
-            </motion.div>
+            {/* Soft stage glow */}
+            <div className="pointer-events-none absolute left-1/2 top-1/2 h-[470px] w-[570px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle_at_center,rgba(255,247,239,0.88)_0%,rgba(230,177,162,0.22)_43%,rgba(138,33,40,0.06)_66%,transparent_76%)] blur-[16px]" />
 
-            <motion.div 
-              style={{ rotateX: shouldReduceMotion ? 0 : rotateX, rotateY: shouldReduceMotion ? 0 : rotateY, transformStyle: "preserve-3d" }}
-              className="w-72 h-[530px] bg-gray-900 rounded-[3rem] p-[8px] shadow-2xl shadow-gray-900/30 relative z-10 transition-transform duration-200 ease-out"
+            {/* Decorative connection rings */}
+            <motion.div
+              aria-hidden="true"
+              animate={shouldReduceMotion ? undefined : { rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 44, ease: 'linear' }}
+              className="pointer-events-none absolute left-1/2 top-1/2 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#8A2128]/[0.07]"
+            />
+            <motion.div
+              aria-hidden="true"
+              animate={shouldReduceMotion ? undefined : { rotate: -360 }}
+              transition={{ repeat: Infinity, duration: 58, ease: 'linear' }}
+              className="pointer-events-none absolute left-1/2 top-1/2 h-[620px] w-[620px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#D2A968]/[0.07]"
+            />
+
+            {/* Back photo — left */}
+            <motion.figure
+              animate={shouldReduceMotion ? undefined : { y: [0, -7, 0], rotate: [-7, -5.8, -7] }}
+              transition={{ repeat: Infinity, duration: 7.8, ease: 'easeInOut' }}
+              whileHover={shouldReduceMotion ? undefined : { y: -10, rotate: -3.5, scale: 1.025 }}
+              className="absolute left-[1%] top-[98px] z-10 w-[220px] overflow-hidden rounded-[1.8rem] border-[8px] border-white/90 bg-white shadow-[0_24px_55px_rgba(77,43,40,0.18)] sm:left-[2%] sm:w-[250px] lg:left-[0%] lg:top-[90px] lg:w-[270px]"
             >
-              <div className="bg-slate-50 w-full h-full rounded-[2.5rem] overflow-hidden relative flex flex-col">
-                <div className="absolute top-0 inset-x-0 h-5 flex justify-center z-30"><div className="w-24 h-5 bg-gray-900 rounded-b-[1rem]"></div></div>
-                <div className="w-full h-16 pt-5 bg-white/90 backdrop-blur-md flex items-end justify-center pb-2 font-extrabold text-gray-800 text-xs border-b border-gray-100 tracking-wide">Discover</div>
-                <div className="p-3 flex-1 flex flex-col">
-                  <div className="w-full flex-1 rounded-2xl bg-gradient-to-br from-[#8B1E2D] via-[#6B1422] to-[#4A0B13] p-4 flex flex-col justify-end text-white relative overflow-hidden shadow-inner space-y-3">
-                    <div className="relative z-10 flex flex-wrap gap-1.5 pt-12">
-                      <span className="bg-black/20 backdrop-blur-md border border-white/20 text-[9px] font-bold text-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1"><Coffee className="w-2.5 h-2.5 text-amber-300" /> Specialty Coffee</span>
-                      <span className="bg-black/20 backdrop-blur-md border border-white/20 text-[9px] font-bold text-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1"><Palette className="w-2.5 h-2.5 text-amber-300" /> Modern Art</span>
-                    </div>
-                    <div className="relative z-10 space-y-1">
-                      <div className="flex items-center gap-1.5"><h3 className="text-2xl font-black">A.L, 26</h3><span className="text-amber-300 flex items-center"><BadgeCheck className="w-5 h-5 fill-amber-300/20 text-amber-300" /></span></div>
-                      <p className="text-[11px] text-white/80 font-medium leading-tight">Coffee addict & gallery explorer. Seeking deep conversations.</p>
-                    </div>
+              <div className="aspect-[4/5] overflow-hidden rounded-[1.35rem] bg-[#EEDFD7]">
+                {seraseHeroPhoto2 ? (
+                  <img
+                    src={seraseHeroPhoto2}
+                    alt="Serasé lifestyle moment"
+                    className="h-full w-full object-cover"
+                    draggable={false}
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(145deg,#F3E6DF,#D8BDB3)] text-[10px] font-black uppercase tracking-[0.14em] text-[#8A5C58]/55">
+                    Photo 02
                   </div>
-                  
-                  <div className="flex items-center justify-center gap-4 py-3">
-                    <div className="w-10 h-10 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center text-gray-400 text-sm">✕</div>
-                    <div className="w-12 h-12 rounded-full bg-white shadow-lg shadow-rose-500/30 border border-rose-100 flex items-center justify-center animate-glow-pulse">
-                      <img src={cherryLogo} alt="Cherry Logo" className="w-6 h-6 object-contain" />
-                    </div>
-                  </div>
+                )}
+              </div>
+            </motion.figure>
 
+            {/* Back photo — right */}
+            <motion.figure
+              animate={shouldReduceMotion ? undefined : { y: [0, 8, 0], rotate: [6.5, 5.2, 6.5] }}
+              transition={{ repeat: Infinity, duration: 8.6, ease: 'easeInOut', delay: 0.7 }}
+              whileHover={shouldReduceMotion ? undefined : { y: 4, rotate: 3, scale: 1.025 }}
+              className="absolute bottom-[54px] right-[0%] z-10 w-[210px] overflow-hidden rounded-[1.8rem] border-[8px] border-white/90 bg-white shadow-[0_24px_55px_rgba(77,43,40,0.18)] sm:right-[1%] sm:w-[238px] lg:bottom-[48px] lg:right-[0%] lg:w-[255px]"
+            >
+              <div className="aspect-[4/5] overflow-hidden rounded-[1.35rem] bg-[#EEDFD7]">
+                {seraseHeroPhoto3 ? (
+                  <img
+                    src={seraseHeroPhoto3}
+                    alt="Serasé connection moment"
+                    className="h-full w-full object-cover"
+                    draggable={false}
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(145deg,#EADBD3,#CDAAA1)] text-[10px] font-black uppercase tracking-[0.14em] text-[#8A5C58]/55">
+                    Photo 03
+                  </div>
+                )}
+              </div>
+            </motion.figure>
+
+            {/* Main photo — use the beach image here */}
+            <motion.figure
+              animate={shouldReduceMotion ? undefined : { y: [0, -6, 0], rotate: [1.4, 0.4, 1.4] }}
+              transition={{ repeat: Infinity, duration: 6.8, ease: 'easeInOut' }}
+              whileHover={shouldReduceMotion ? undefined : { y: -8, rotate: 0, scale: 1.018 }}
+              className="group relative z-20 w-[78%] max-w-[480px] overflow-hidden rounded-[2.25rem] border-[9px] border-white/92 bg-white shadow-[0_34px_80px_rgba(71,36,36,0.24)]"
+            >
+              <div className="relative aspect-[4/3] overflow-hidden rounded-[1.7rem] bg-[#E7D7CC]">
+                {seraseHeroPhoto1 ? (
+                  <img
+                    src={seraseHeroPhoto1}
+                    alt="Couple walking together"
+                    className="h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-[1.025]"
+                    draggable={false}
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(145deg,#F3E4DA,#CBA99D)] text-[11px] font-black uppercase tracking-[0.16em] text-[#7E554F]/60">
+                    Main Photo 01
+                  </div>
+                )}
+
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#311A18]/28 via-transparent to-white/8" />
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#351B19]/34 to-transparent" />
+
+                <div className="absolute bottom-5 left-5 rounded-full border border-white/30 bg-white/82 px-4 py-2 text-[11px] font-black tracking-[0.04em] text-[#4A302D] shadow-sm backdrop-blur-md">
+                  Meet in real life.
                 </div>
               </div>
-            </motion.div>
+            </motion.figure>
+
           </motion.div>
         </motion.div>
       </section>
 
-      <section className="py-12 border-y border-gray-100 bg-gray-50/50 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-8">Backed by & Featured in</p>
-          <div className="flex flex-wrap justify-center items-center gap-10 md:gap-20 opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-500">
-            <div className="text-xl font-black text-gray-800 tracking-tighter">TechDaily</div>
-            <div className="text-xl font-black text-gray-800 tracking-tighter">DatingInsider</div>
-            <div className="text-xl font-black text-gray-800 tracking-tighter">StartupMY</div>
-            <div className="text-xl font-black text-gray-800 tracking-tighter">TheLifestyle</div>
-          </div>
-        </div>
-      </section>
 
-      <section className="max-w-5xl mx-auto px-6 py-20 relative">
-        <div className="bg-gradient-to-br from-primary via-primary/95 to-rose-950 rounded-[3rem] p-8 md:p-12 text-white shadow-2xl shadow-primary/25 relative overflow-hidden grid lg:grid-cols-2 gap-12 items-center border border-white/10">
-          <div className="space-y-6 relative z-10 text-center lg:text-left">
-            <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-amber-300 border border-white/20 shadow-inner mx-auto lg:mx-0"><Sparkles className="w-6 h-6" /></div>
-            <h2 className="text-4xl font-extrabold tracking-tight leading-tight">Meet Omar, <br />Your AI Wingman.</h2>
-            <p className="text-white/80 text-sm leading-relaxed">Never stare at a blank chat screen again. Our built-in AI dating coach analyzes profiles and helps you craft the perfect icebreaker.</p>
-          </div>
 
-          <div className="w-full max-w-sm mx-auto relative z-10">
-            <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-[2.5rem] p-4 shadow-2xl flex flex-col h-[500px]">
-              <div className="px-3 py-2 border-b border-white/10 flex items-center justify-between pb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-amber-400 text-primary font-black flex items-center justify-center text-sm">O</div>
-                  <div><h4 className="font-extrabold text-white text-xs">Omar AI</h4><span className="text-[10px] text-green-400 font-bold flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span> Active Coach</span></div>
-                </div>
-              </div>
-              
-              <div className="flex-1 p-3 overflow-y-auto scrollbar-hide flex flex-col gap-3 my-2">
-                <AnimatePresence initial={false}>
-                  {messages.map((msg, idx) => (
-                    <motion.div 
-                      key={idx}
-                      initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 12, scale: shouldReduceMotion ? 1 : 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      transition={{ duration: 0.25, ease: "easeOut" }}
-                      className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs font-medium leading-relaxed ${msg.role === 'ai' ? 'bg-white/15 border border-white/10 text-white self-start backdrop-blur-md rounded-tl-none shadow-sm' : 'bg-amber-400 text-gray-900 font-semibold self-end rounded-tr-none shadow-md'}`}
-                    >
-                      {msg.text}
-                    </motion.div>
-                  ))}
-                  {isTyping && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="max-w-[85%] bg-white/15 border border-white/10 text-amber-200 self-start rounded-2xl rounded-tl-none px-4 py-2.5 flex gap-1.5 items-center">
-                      <span className="w-1.5 h-1.5 bg-amber-300 rounded-full animate-bounce"></span>
-                      <span className="w-1.5 h-1.5 bg-amber-300 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
-                      <span className="w-1.5 h-1.5 bg-amber-300 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></span>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-                <div ref={chatEndRef} />
+      {/* ==================== Why Serasé + How It Works (Combined) ==================== */}
+      <section className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden py-0">
+        <motion.div
+          initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 22 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-90px" }}
+          transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+          className="relative w-full overflow-hidden bg-[#F5ECE7]"
+        >
+          <div className="relative min-h-[980px] overflow-hidden md:min-h-[900px] lg:h-[calc(100svh-72px)] lg:min-h-[700px] lg:max-h-[900px]">
+            <img
+              src={seraseHowItWorksBg}
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 h-full w-full object-cover object-center opacity-[0.90]"
+            />
+
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(255,249,245,0.93)_0%,rgba(255,249,245,0.82)_27%,rgba(255,248,244,0.56)_48%,rgba(255,246,240,0.22)_69%,rgba(67,35,31,0.12)_100%)]"
+            />
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 top-0 h-[44%] bg-gradient-to-b from-[#FFF9F4]/44 via-[#FFF9F4]/10 to-transparent"
+            />
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-[38%] bg-gradient-to-t from-[#2B1917]/22 via-[#5B332C]/6 to-transparent"
+            />
+
+            {/* ==================== HEADING + BELIEFS ==================== */}
+            <div className="absolute left-[4.2%] right-[4.2%] top-[4.5%] z-20 max-w-[940px]">
+              <div className="inline-flex items-center gap-2.5 border-b-2 border-[#8A2128] pb-2.5 text-[13px] font-black uppercase tracking-[0.22em] text-[#8A2128] md:text-[14px]">
+                <Sparkles className="h-4 w-4" />
+                Why Serasé + How It Works
               </div>
 
-              <form onSubmit={handleSendMessage} className="pt-2 border-t border-white/10 relative flex items-center">
-                <input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Ask Omar anything..." className="w-full bg-black/25 border border-white/15 rounded-full pl-4 pr-11 py-2.5 text-xs text-white placeholder:text-white/40 focus:outline-none focus:ring-1 focus:ring-amber-300 transition-all" />
-                <button type="submit" disabled={!chatInput.trim() || isTyping} className="absolute right-1.5 w-7 h-7 rounded-full bg-amber-400 text-primary flex items-center justify-center disabled:opacity-30"><Send className="w-3.5 h-3.5 fill-current" /></button>
-              </form>
+              <div className="mt-6 max-w-[900px]">
+                <h2 className="serase-caveat text-[54px] font-bold leading-[0.9] tracking-[-0.02em] text-[#231A18] sm:text-[64px] md:text-[72px] lg:text-[78px] xl:text-[82px]">
+                  From verified hello
+                  <br />
+                  <span className="bg-gradient-to-r from-[#A21F2D] via-[#C71E3B] to-[#E56A0A] bg-clip-text text-transparent">
+                    to a real date.
+                  </span>
+                </h2>
+
+                <p className="serase-caveat mt-4 max-w-[760px] text-[22px] font-medium leading-[1.26] text-[#746762] md:text-[23px] lg:text-[24px]">
+                  Trust comes first. AI is here to help, not take over. And every connection should have a chance to move into real life.
+                </p>
+              </div>
             </div>
-          </div>
-        </div>
-      </section>
 
-      {/* ==================== 🚀 爆改区域：Scrapbook / Rigged Letter 风格的信件区 ==================== */}
-      <section className="max-w-6xl mx-auto px-6 py-24 relative overflow-hidden">
-        
-        {/* 剪贴簿风格标题：马克笔高光效果 */}
-        <div className="text-center mb-20 space-y-4 flex flex-col items-center">
-          <div className="inline-block relative">
-            <h2 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight relative z-10 px-2">
-              Success Stories
-            </h2>
-            {/* 模拟马克笔涂抹的高光 */}
-            <div className="absolute bottom-1 left-0 w-full h-4 bg-amber-200/80 -rotate-2 -z-10 rounded-sm"></div>
-          </div>
-          <p className="text-muted-foreground text-lg font-medium italic">
-            Don't just take our word for it. Read the notes from our community.
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-12 md:gap-8 items-center px-4">
-          {testimonials.map((testi, idx) => {
-            // 给每张纸条设置不同的随机倾斜角度，营造真实的剪贴簿凌乱感
-            const cardRotations = ['-rotate-2', 'rotate-2', '-rotate-1'];
-            // 给胶带设置不同的位置和倾斜角
-            const tapeRotations = ['rotate-3', '-rotate-2', 'rotate-1'];
-            const tapePositions = ['left-[30%]', 'left-1/2', 'left-[70%]'];
-
-            return (
-              <div 
-                key={idx} 
-                className={`relative ${cardRotations[idx]} hover:rotate-0 hover:-translate-y-2 transition-all duration-300 ease-out group`}
+            {/* ==================== DESKTOP JOURNEY ==================== */}
+            <div className="absolute inset-x-[2.5%] top-[41%] bottom-[2.5%] z-20 hidden md:block">
+              {/* One-time hint teaching people the icons are interactive.
+                  Appears once when this area scrolls into view, then fades
+                  itself out — doesn't rely on prefers-reduced-motion since
+                  the timer still needs to run either way. */}
+              <motion.div
+                aria-hidden="true"
+                viewport={{ once: true, amount: 0.5 }}
+                onViewportEnter={() => {
+                  if (journeyHintTimeoutRef.current) return;
+                  journeyHintTimeoutRef.current = setTimeout(() => {
+                    setJourneyHintVisible(false);
+                  }, 4200);
+                }}
+                initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 8 }}
+                animate={{
+                  opacity: journeyHintVisible ? 1 : 0,
+                  y: journeyHintVisible || shouldReduceMotion ? 0 : -6,
+                }}
+                transition={{ duration: shouldReduceMotion ? 0 : 0.45, ease: 'easeOut' }}
+                className="pointer-events-none absolute left-[1%] top-[1%] z-30"
               >
-                
-                {/* 🏷️ 模拟半透明的遮蔽胶带 (Masking Tape) */}
-                <div 
-                  className={`absolute -top-3 ${tapePositions[idx]} -translate-x-1/2 w-16 h-7 bg-white/60 backdrop-blur-sm border border-gray-200 shadow-sm ${tapeRotations[idx]} z-20`}
-                  style={{ backgroundImage: 'linear-gradient(45deg, rgba(255,255,255,0.2) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.2) 75%, transparent 75%, transparent)' }}
-                ></div>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/70 bg-white/94 px-3.5 py-1.5 text-[10.5px] font-black text-[#8A2128] shadow-[0_10px_24px_rgba(75,45,42,0.16)] backdrop-blur-md">
+                  <MousePointerClick className="h-3.5 w-3.5" />
+                  Hover an icon to learn more
+                </span>
+              </motion.div>
 
-                {/* 📝 卡片本体：撕纸信件风格 (硬阴影 + 虚线) */}
-                <div 
-                  className="bg-[#FDFBF7] p-8 md:p-10 relative z-10 h-full flex flex-col justify-between"
-                  style={{
-                    border: '1px solid rgba(0,0,0,0.06)',
-                    // 使用生硬的偏移阴影 (Offset Shadow) 营造纸张剪切感
-                    boxShadow: '8px 8px 0px 0px rgba(138, 33, 40, 0.05)',
-                    borderRadius: '2px' // 几乎直角，模仿剪下来的纸片
-                  }}
+              {/*
+                Natural one-line snake:
+                01 → 02 → 03
+                          ↘
+                04 → 05 → 06
+
+                Every icon centre is mapped directly onto the path.
+              */}
+              <svg
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 z-0 h-full w-full overflow-visible"
+                viewBox="0 0 1200 520"
+                preserveAspectRatio="none"
+              >
+                <defs>
+                  <linearGradient id="seraseJourneyLine" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#C8871E" />
+                    <stop offset="28%" stopColor="#D99D24" />
+                    <stop offset="58%" stopColor="#EDB93B" />
+                    <stop offset="100%" stopColor="#F2C24C" />
+                  </linearGradient>
+
+                  <linearGradient id="seraseJourneyShadow" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#7E5422" stopOpacity="0.22" />
+                    <stop offset="35%" stopColor="#9B6A27" stopOpacity="0.14" />
+                    <stop offset="72%" stopColor="#C49336" stopOpacity="0.07" />
+                    <stop offset="100%" stopColor="#DDB24D" stopOpacity="0.03" />
+                  </linearGradient>
+
+                  <radialGradient id="seraseJourneyDot" cx="38%" cy="34%" r="70%">
+                    <stop offset="0%" stopColor="#FFF3D6" />
+                    <stop offset="45%" stopColor="#F2C24C" />
+                    <stop offset="100%" stopColor="#C8871E" />
+                  </radialGradient>
+
+                  <filter id="seraseJourneyGlow" x="-140%" y="-140%" width="380%" height="380%">
+                    <feGaussianBlur stdDeviation="4.2" result="blur" />
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                </defs>
+                <path
+                  d="M 0 112
+                     C 72 108, 102 112, 122 112
+                     C 235 128, 330 126, 432 92
+                     C 555 52, 710 70, 840 120
+                     C 930 150, 890 260, 640 290
+                     C 480 315, 380 250, 340 330
+                     C 430 356, 540 372, 650 360
+                     C 780 344, 890 336, 986 342
+                     C 1064 347, 1134 339, 1200 342"
+                  fill="none"
+                  stroke="url(#seraseJourneyShadow)"
+                  strokeWidth="5.2"
+                  strokeLinecap="round"
+                  opacity="0.95"
+                />
+                <path
+                  id="serase-home-journey-path"
+                  d="M 0 112
+                     C 72 108, 102 112, 122 112
+                     C 235 128, 330 126, 432 92
+                     C 555 52, 710 70, 840 120
+                     C 930 150, 890 260, 640 290
+                     C 480 315, 380 250, 340 330
+                     C 430 356, 540 372, 650 360
+                     C 780 344, 890 336, 986 342
+                     C 1064 347, 1134 339, 1200 342"
+                  fill="none"
+                  stroke="url(#seraseJourneyLine)"
+                  strokeWidth="2.35"
+                  strokeLinecap="round"
+                  strokeDasharray="2.4 7.2"
+                />
+
+                {/* Traveling highlight — follows the exact curve via native SVG motion,
+                    so it stays glued to the path no matter how the viewBox is stretched.
+                    Gated behind shouldReduceMotion since prefers-reduced-motion (CSS)
+                    has no effect on SMIL/animateMotion. */}
+                {!shouldReduceMotion && (
+                  <g filter="url(#seraseJourneyGlow)">
+                    <circle r="10" fill="#F2C24C" fillOpacity="0.16">
+                      <animateMotion dur="9s" repeatCount="indefinite" rotate="auto">
+                        <mpath href="#serase-home-journey-path" xlinkHref="#serase-home-journey-path" />
+                      </animateMotion>
+                    </circle>
+                    <circle r="4.5" fill="url(#seraseJourneyDot)">
+                      <animateMotion dur="9s" repeatCount="indefinite" rotate="auto">
+                        <mpath href="#serase-home-journey-path" xlinkHref="#serase-home-journey-path" />
+                      </animateMotion>
+                      <animate
+                        attributeName="opacity"
+                        values="0.65;1;0.65"
+                        dur="2.1s"
+                        repeatCount="indefinite"
+                      />
+                    </circle>
+                  </g>
+                )}
+              </svg>
+
+              {/* 01 VERIFY */}
+              <div className="absolute z-20 h-0 w-0" style={{ left: '10.17%', top: '21.54%' }}>
+                <span
+                  aria-hidden="true"
+                  className="serase-journey-cue-ring pointer-events-none absolute left-0 top-0 h-[54px] w-[54px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+                  style={{ animationDelay: '0s' }}
+                />
+                <div
+                  tabIndex={0}
+                  aria-label="Show Verify details"
+                  className="peer absolute left-0 top-0 flex h-[54px] w-[54px] -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border-[3px] border-[#FFF8F2] bg-[#9E2530] text-white shadow-[0_0_0_2px_rgba(238,194,87,0.30),0_0_20px_rgba(230,181,75,0.26),0_10px_24px_rgba(70,28,31,0.20)] outline-none transition-transform duration-200 hover:scale-[1.06] focus-visible:scale-[1.06] focus-visible:ring-4 focus-visible:ring-[#E7B84D]/30"
                 >
-                  <div className="space-y-6 relative z-10">
-                    <div className="flex gap-1.5 text-amber-400">
-                      {[1, 2, 3, 4, 5].map(s => <Star key={s} className="w-4 h-4 fill-current" />)}
-                    </div>
-                    {/* 使用稍微衬线/手写感的排版 */}
-                    <p className="text-[15px] leading-relaxed text-gray-700 font-medium italic">
-                      "{testi.text}"
-                    </p>
-                  </div>
+                  <ShieldCheck className="h-[18px] w-[18px]" />
+                </div>
+                <div className="absolute left-0 top-[34px] -translate-x-1/2 rounded-full border border-white/70 bg-white/92 px-2 py-0.5 text-[8px] font-black text-[#9B3037] shadow-sm">01</div>
+                <div className="absolute left-0 top-[61px] -translate-x-1/2 whitespace-nowrap serase-caveat text-[24px] font-bold leading-none text-[#40332F]">Verify</div>
 
-                  {/* 模拟参考图中的虚线分割 (Dashed Line) */}
-                  <hr className="border-t-2 border-dashed border-gray-200/80 my-6" />
-
-                  <div className="flex items-center gap-4 relative z-10">
-                    <div className="w-12 h-12 bg-primary/10 text-primary font-black flex items-center justify-center text-lg transform -rotate-6 border border-primary/20 shadow-sm" style={{ borderRadius: '4px' }}>
-                      {testi.name.charAt(0)}
+                <div className="invisible pointer-events-none absolute left-[62px] top-0 z-40 w-[238px] -translate-y-1/2 translate-x-2 scale-[0.97] rounded-[1.35rem] border border-white/82 bg-white/95 p-4 opacity-0 shadow-[0_18px_38px_rgba(75,45,42,0.15)] backdrop-blur-[20px] transition-[opacity,transform,visibility] duration-200 ease-out peer-hover:visible peer-hover:pointer-events-auto peer-hover:translate-x-0 peer-hover:scale-100 peer-hover:opacity-100 peer-focus:visible peer-focus:pointer-events-auto peer-focus:translate-x-0 peer-focus:scale-100 peer-focus:opacity-100">
+                  <div className="text-[8px] font-black uppercase tracking-[0.16em] text-[#A23B42]">Verified first</div>
+                  <div className="serase-caveat mt-1.5 text-[21px] font-bold leading-none text-[#2B2321]">Start with trust.</div>
+                  <p className="serase-caveat mt-2 text-[16px] font-medium leading-[1.1] text-[#756863]">
+                    Every profile starts with identity verification.
+                  </p>
+                  <div className="mt-3 flex items-center gap-3 border-t border-[#E9DDD7] pt-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#F1D8D5] text-[#8A2128]">
+                      <ShieldCheck className="h-3.5 w-3.5" />
                     </div>
                     <div>
-                      <div className="text-base font-black text-gray-900 tracking-tight">{testi.name}</div>
-                      <div className="text-[11px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">{testi.location}</div>
+                      <div className="text-[11px] font-black text-[#2E6842]">Identity verified</div>
+                      <div className="serase-caveat mt-0.5 text-[15px] font-medium leading-[1.02] text-[#756863]">ID + live selfie check</div>
                     </div>
                   </div>
                 </div>
               </div>
-            );
-          })}
-        </div>
-      </section>
 
-      <section className="max-w-5xl mx-auto px-6 py-20 relative">
-        <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }} className="w-full rounded-[3rem] p-10 md:p-16 text-center relative overflow-hidden shadow-2xl group">
-          <img src={newsletterBg} alt="Couple at sunset" className="absolute inset-0 w-full h-full object-cover transition-transform duration-[2000ms] ease-out group-hover:scale-105" />
-          <div className="absolute inset-0 bg-gray-900/80 backdrop-blur-[2px]"></div>
-          <motion.div variants={fadeUp} className="relative z-10 max-w-2xl mx-auto space-y-6">
-            <div className="w-16 h-16 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto border border-white/10 mb-8"><Mail className="w-8 h-8 text-white" /></div>
-            <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">Stay in the loop.</h2>
-            <p className="text-gray-300 font-medium pb-4">Subscribe to our newsletter for the latest dating tips, app updates, and exclusive VIP offers.</p>
-            
-            <div className="max-w-md mx-auto w-full h-14">
-              <AnimatePresence mode="wait">
-                {subscribeStatus === 'success' ? (
-                  <motion.div
-                    key="success"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="w-full h-full flex items-center justify-center gap-3 bg-white/10 backdrop-blur-md border border-white/20 text-white px-6 rounded-2xl"
-                  >
-                    <CheckCircle2 className="w-5 h-5 text-green-400" />
-                    <span className="font-semibold text-sm">Successfully subscribed!</span>
-                  </motion.div>
-                ) : (
-                  <motion.form
-                    key="form"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    onSubmit={handleSubscribe}
-                    className="flex flex-col sm:flex-row gap-3 w-full h-full"
-                  >
-                    <input 
-                      type="email" 
-                      placeholder="Enter your email address" 
-                      required 
-                      disabled={subscribeStatus === 'loading'}
-                      className="flex-1 h-14 bg-white/10 backdrop-blur-md border border-white/20 text-white font-medium px-6 rounded-2xl focus:outline-none placeholder:text-white/50 disabled:opacity-50 transition-all" 
-                    />
-                    <button 
-                      type="submit" 
-                      disabled={subscribeStatus === 'loading'}
-                      className="h-14 px-8 bg-primary text-white font-bold rounded-2xl flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed whitespace-nowrap transition-all"
-                    >
-                      {subscribeStatus === 'loading' ? (
-                        <Loader2 className="w-5 h-5 animate-spin mx-4" />
-                      ) : (
-                        <>Subscribe <ArrowRight className="w-4 h-4" /></>
-                      )}
-                    </button>
-                  </motion.form>
-                )}
-              </AnimatePresence>
+              {/* 02 DISCOVER */}
+              <div className="absolute z-20 h-0 w-0" style={{ left: '36%', top: '17.69%' }}>
+                <span
+                  aria-hidden="true"
+                  className="serase-journey-cue-ring pointer-events-none absolute left-0 top-0 h-[54px] w-[54px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+                  style={{ animationDelay: '0.35s' }}
+                />
+                <div
+                  tabIndex={0}
+                  aria-label="Show Discover details"
+                  className="peer absolute left-0 top-0 flex h-[54px] w-[54px] -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border-[3px] border-[#FFF8F2] bg-[#9E2530] text-white shadow-[0_0_0_2px_rgba(238,194,87,0.30),0_0_20px_rgba(230,181,75,0.26),0_10px_24px_rgba(70,28,31,0.20)] outline-none transition-transform duration-200 hover:scale-[1.06] focus-visible:scale-[1.06] focus-visible:ring-4 focus-visible:ring-[#E7B84D]/30"
+                >
+                  <Sparkles className="h-[18px] w-[18px]" />
+                </div>
+                <div className="absolute left-0 top-[34px] -translate-x-1/2 rounded-full border border-white/70 bg-white/92 px-2 py-0.5 text-[8px] font-black text-[#9B3037] shadow-sm">02</div>
+                <div className="absolute left-0 top-[61px] -translate-x-1/2 whitespace-nowrap serase-caveat text-[24px] font-bold leading-none text-[#40332F]">Discover</div>
+
+                <div className="invisible pointer-events-none absolute left-[62px] top-0 z-40 w-[225px] -translate-y-1/2 translate-x-2 scale-[0.97] rounded-[1.35rem] border border-white/82 bg-white/95 p-4 opacity-0 shadow-[0_18px_38px_rgba(75,45,42,0.15)] backdrop-blur-[20px] transition-[opacity,transform,visibility] duration-200 ease-out peer-hover:visible peer-hover:pointer-events-auto peer-hover:translate-x-0 peer-hover:scale-100 peer-hover:opacity-100 peer-focus:visible peer-focus:pointer-events-auto peer-focus:translate-x-0 peer-focus:scale-100 peer-focus:opacity-100">
+                  <div className="flex gap-3">
+                    <div className="h-[72px] w-[58px] shrink-0 rounded-[0.9rem] bg-[radial-gradient(circle_at_50%_26%,#E0C8BE_0%,#B99288_50%,#76534F_100%)]" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <div className="text-[12px] font-black text-[#2F2927]">Aisha, 27</div>
+                        <span className="rounded-full bg-[#E7C66E] px-1.5 py-0.5 text-[5px] font-black uppercase text-[#8A2128]">Verified</span>
+                      </div>
+                      <div className="mt-1 text-[10px] font-bold text-[#756863]">Writer · KL</div>
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {['Travel', 'Art', 'Coffee'].map((tag) => (
+                          <span key={tag} className="rounded-full bg-[#F4ECE6] px-2 py-1 text-[8px] font-black text-[#745F57]">{tag}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="serase-caveat mt-3 text-[15px] font-medium leading-[1.08] text-[#756863]">
+                    Learn about the person before you connect.
+                  </div>
+                </div>
+              </div>
+
+              {/* 03 CONNECT */}
+              <div className="absolute z-20 h-0 w-0" style={{ left: '70%', top: '23.08%' }}>
+                <span
+                  aria-hidden="true"
+                  className="serase-journey-cue-ring pointer-events-none absolute left-0 top-0 h-[54px] w-[54px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+                  style={{ animationDelay: '0.7s' }}
+                />
+                <div
+                  tabIndex={0}
+                  aria-label="Show Connect details"
+                  className="peer absolute left-0 top-0 flex h-[54px] w-[54px] -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border-[3px] border-[#FFF8F2] bg-[#9E2530] text-white shadow-[0_0_0_2px_rgba(238,194,87,0.30),0_0_20px_rgba(230,181,75,0.26),0_10px_24px_rgba(70,28,31,0.20)] outline-none transition-transform duration-200 hover:scale-[1.06] focus-visible:scale-[1.06] focus-visible:ring-4 focus-visible:ring-[#E7B84D]/30"
+                >
+                  <MessageCircle className="h-[18px] w-[18px]" />
+                </div>
+                <div className="absolute left-0 top-[34px] -translate-x-1/2 rounded-full border border-white/70 bg-white/92 px-2 py-0.5 text-[8px] font-black text-[#9B3037] shadow-sm">03</div>
+                <div className="absolute left-0 top-[61px] -translate-x-1/2 whitespace-nowrap serase-caveat text-[24px] font-bold leading-none text-white drop-shadow-[0_2px_7px_rgba(38,24,21,0.36)]">Connect</div>
+
+                <div className="invisible pointer-events-none absolute right-[62px] top-0 z-40 w-[230px] -translate-y-1/2 -translate-x-2 scale-[0.97] rounded-[1.35rem] border border-white/82 bg-white/95 p-4 opacity-0 shadow-[0_18px_38px_rgba(75,45,42,0.15)] backdrop-blur-[20px] transition-[opacity,transform,visibility] duration-200 ease-out peer-hover:visible peer-hover:pointer-events-auto peer-hover:translate-x-0 peer-hover:scale-100 peer-hover:opacity-100 peer-focus:visible peer-focus:pointer-events-auto peer-focus:translate-x-0 peer-focus:scale-100 peer-focus:opacity-100">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F5E6C2] text-[#B27823]">
+                      <Clock3 className="h-4 w-4" />
+                    </div>
+                    <div className="text-[12px] font-black text-[#4A3C36]">48-hour connection</div>
+                  </div>
+                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#E8DED7]">
+                    <div className="h-full w-[64%] rounded-full bg-gradient-to-r from-[#D2A44D] to-[#B87D2A]" />
+                  </div>
+                  <div className="serase-caveat mt-2.5 text-[16px] font-medium leading-[1.08] text-[#756863]">
+                    See how much time is left and keep the conversation moving.
+                  </div>
+                </div>
+              </div>
+
+              {/* 04 AI ICEBREAK */}
+              <div className="absolute z-20 h-0 w-0" style={{ left: '28.33%', top: '63.46%' }}>
+                <span
+                  aria-hidden="true"
+                  className="serase-journey-cue-ring pointer-events-none absolute left-0 top-0 h-[54px] w-[54px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+                  style={{ animationDelay: '1.05s' }}
+                />
+                <div
+                  tabIndex={0}
+                  aria-label="Show AI Icebreak details"
+                  className="peer absolute left-0 top-0 flex h-[54px] w-[54px] -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border-[3px] border-[#FFF8F2] bg-[#9E2530] text-white shadow-[0_0_0_2px_rgba(238,194,87,0.30),0_0_20px_rgba(230,181,75,0.26),0_10px_24px_rgba(70,28,31,0.20)] outline-none transition-transform duration-200 hover:scale-[1.06] focus-visible:scale-[1.06] focus-visible:ring-4 focus-visible:ring-[#E7B84D]/30"
+                >
+                  <Star className="h-[18px] w-[18px]" />
+                </div>
+                <div className="absolute left-0 top-[34px] -translate-x-1/2 rounded-full border border-white/70 bg-white/92 px-2 py-0.5 text-[8px] font-black text-[#9B3037] shadow-sm">04</div>
+                <div className="absolute left-0 top-[61px] -translate-x-1/2 whitespace-nowrap serase-caveat text-[24px] font-bold leading-none text-[#40332F]">AI icebreak</div>
+
+                <div className="invisible pointer-events-none absolute left-[62px] top-0 z-40 w-[245px] -translate-y-1/2 translate-x-2 scale-[0.97] rounded-[1.35rem] border border-white/82 bg-white/95 p-4 opacity-0 shadow-[0_18px_38px_rgba(75,45,42,0.15)] backdrop-blur-[20px] transition-[opacity,transform,visibility] duration-200 ease-out peer-hover:visible peer-hover:pointer-events-auto peer-hover:translate-x-0 peer-hover:scale-100 peer-hover:opacity-100 peer-focus:visible peer-focus:pointer-events-auto peer-focus:translate-x-0 peer-focus:scale-100 peer-focus:opacity-100">
+                  <div className="text-[8px] font-black uppercase tracking-[0.16em] text-[#A06A1F]">AI help when you need it</div>
+                  <div className="serase-caveat mt-1.5 text-[21px] font-bold leading-none text-[#2B2321]">Helpful, not in control.</div>
+                  <p className="serase-caveat mt-2 text-[16px] font-medium leading-[1.1] text-[#756863]">
+                    Get ideas and reply help. You choose what to use.
+                  </p>
+                  <div className="serase-caveat mt-3 rounded-[0.95rem] bg-[#F8F2EE] px-3 py-2 text-[14px] font-medium leading-[1.08] text-[#544946]">
+                    “Loved your travel photos — favourite weekend spot in KL?”
+                  </div>
+                </div>
+              </div>
+
+              {/* 05 PLAN A DATE */}
+              <div className="absolute z-20 h-0 w-0" style={{ left: '54.17%', top: '69.23%' }}>
+                <span
+                  aria-hidden="true"
+                  className="serase-journey-cue-ring pointer-events-none absolute left-0 top-0 h-[54px] w-[54px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+                  style={{ animationDelay: '1.4s' }}
+                />
+                <div
+                  tabIndex={0}
+                  aria-label="Show Plan a Date details"
+                  className="peer absolute left-0 top-0 flex h-[54px] w-[54px] -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border-[3px] border-[#FFF8F2] bg-[#9E2530] text-white shadow-[0_0_0_2px_rgba(238,194,87,0.30),0_0_20px_rgba(230,181,75,0.26),0_10px_24px_rgba(70,28,31,0.20)] outline-none transition-transform duration-200 hover:scale-[1.06] focus-visible:scale-[1.06] focus-visible:ring-4 focus-visible:ring-[#E7B84D]/30"
+                >
+                  <CalendarCheck2 className="h-[18px] w-[18px]" />
+                </div>
+                <div className="absolute left-0 top-[34px] -translate-x-1/2 rounded-full border border-white/70 bg-white/92 px-2 py-0.5 text-[8px] font-black text-[#9B3037] shadow-sm">05</div>
+                <div className="absolute left-0 top-[61px] -translate-x-1/2 whitespace-nowrap serase-caveat text-[24px] font-bold leading-none text-white drop-shadow-[0_2px_7px_rgba(38,24,21,0.34)]">Plan a date</div>
+
+                <div className="invisible pointer-events-none absolute left-[62px] top-0 z-40 w-[225px] -translate-y-1/2 translate-x-2 scale-[0.97] rounded-[1.35rem] border border-white/82 bg-white/95 p-4 opacity-0 shadow-[0_18px_38px_rgba(75,45,42,0.15)] backdrop-blur-[20px] transition-[opacity,transform,visibility] duration-200 ease-out peer-hover:visible peer-hover:pointer-events-auto peer-hover:translate-x-0 peer-hover:scale-100 peer-hover:opacity-100 peer-focus:visible peer-focus:pointer-events-auto peer-focus:translate-x-0 peer-focus:scale-100 peer-focus:opacity-100">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F4E1B6] text-[#A06A1F]">
+                      <CalendarCheck2 className="h-4 w-4" />
+                    </div>
+                    <div className="text-[12px] font-black text-[#4A3C36]">Plan your date</div>
+                  </div>
+                  <div className="mt-3 grid gap-1.5 text-[11px] font-bold text-[#756863]">
+                    <div className="rounded-full bg-[#F6EFE9] px-3 py-2">Coffee in Bangsar</div>
+                    <div className="rounded-full bg-[#F6EFE9] px-3 py-2">Thursday · 8:00 PM</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 06 MEET */}
+              <div className="absolute z-20 h-0 w-0" style={{ left: '82.17%', top: '65.77%' }}>
+                <span
+                  aria-hidden="true"
+                  className="serase-journey-cue-ring pointer-events-none absolute left-0 top-0 h-[54px] w-[54px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+                  style={{ animationDelay: '1.75s' }}
+                />
+                <div
+                  tabIndex={0}
+                  aria-label="Show Meet details"
+                  className="peer absolute left-0 top-0 flex h-[54px] w-[54px] -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border-[3px] border-[#FFF8F2] bg-[#9E2530] text-white shadow-[0_0_0_2px_rgba(238,194,87,0.30),0_0_20px_rgba(230,181,75,0.26),0_10px_24px_rgba(70,28,31,0.20)] outline-none transition-transform duration-200 hover:scale-[1.06] focus-visible:scale-[1.06] focus-visible:ring-4 focus-visible:ring-[#E7B84D]/30"
+                >
+                  <MapPin className="h-[18px] w-[18px]" />
+                </div>
+                <div className="absolute left-0 top-[34px] -translate-x-1/2 rounded-full border border-white/70 bg-white/92 px-2 py-0.5 text-[8px] font-black text-[#9B3037] shadow-sm">06</div>
+                <div className="absolute left-0 top-[61px] -translate-x-1/2 whitespace-nowrap serase-caveat text-[24px] font-bold leading-none text-white drop-shadow-[0_2px_7px_rgba(38,24,21,0.36)]">Meet</div>
+
+                <div className="invisible pointer-events-none absolute right-[62px] top-0 z-40 w-[238px] -translate-y-1/2 -translate-x-2 scale-[0.97] rounded-[1.35rem] border border-white/82 bg-white/95 p-4 opacity-0 shadow-[0_18px_38px_rgba(75,45,42,0.15)] backdrop-blur-[20px] transition-[opacity,transform,visibility] duration-200 ease-out peer-hover:visible peer-hover:pointer-events-auto peer-hover:translate-x-0 peer-hover:scale-100 peer-hover:opacity-100 peer-focus:visible peer-focus:pointer-events-auto peer-focus:translate-x-0 peer-focus:scale-100 peer-focus:opacity-100">
+                  <div className="text-[8px] font-black uppercase tracking-[0.16em] text-[#A23B42]">Meet in real life</div>
+                  <div className="serase-caveat mt-1.5 text-[21px] font-bold leading-none text-[#2B2321]">Make a real plan.</div>
+                  <p className="serase-caveat mt-2 text-[16px] font-medium leading-[1.1] text-[#756863]">
+                    Turn a good connection into a real date.
+                  </p>
+                  <div className="mt-3 flex items-center gap-3 border-t border-[#E9DDD7] pt-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#F0D7D4] text-[#8A2128]">
+                      <MapPin className="h-3.5 w-3.5" />
+                    </div>
+                    <div>
+                      <div className="text-[11px] font-black text-[#2E6842]">Date confirmed</div>
+                      <div className="mt-0.5 text-[10px] font-black text-[#4A3C36]">Saturday · 8:00 PM</div>
+                      <div className="serase-caveat mt-0.5 text-[14px] font-medium leading-[1.02] text-[#756863]">Bangsar · Kuala Lumpur</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
-          </motion.div>
+            {/* ==================== MOBILE ==================== */}
+            <div className="absolute inset-x-4 bottom-4 z-30 rounded-[1.6rem] border border-white/70 bg-[#FFF9F4]/94 p-3.5 shadow-[0_16px_38px_rgba(75,45,42,0.14)] backdrop-blur-xl md:hidden">
+              <div className="grid grid-cols-3 gap-x-2 gap-y-3">
+                {[
+                  ['01', 'Verify', ShieldCheck],
+                  ['02', 'Discover', Sparkles],
+                  ['03', 'Connect', MessageCircle],
+                  ['04', 'AI', Star],
+                  ['05', 'Plan', CalendarCheck2],
+                  ['06', 'Meet', MapPin],
+                ].map(([step, label, Icon]) => {
+                  const JourneyIcon = Icon as React.ElementType;
+                  return (
+                    <div key={step as string} className="flex flex-col items-center text-center">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#8A2128] text-white shadow-[0_5px_14px_rgba(138,33,40,0.18)] ring-2 ring-white/80">
+                        <JourneyIcon className="h-4 w-4" />
+                      </div>
+                      <div className="mt-1.5 text-[6.5px] font-black text-[#A23B42]">{step as string}</div>
+                      <div className="mt-0.5 text-[8px] font-black text-[#5E4D47]">{label as string}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </section>
+      {/* ==================== Brand Manifesto ==================== */}
+      <section className="relative isolate flex min-h-[720px] w-full items-center overflow-hidden bg-[#241E1D] py-24 text-white md:min-h-[760px] md:py-28 lg:min-h-[calc(100svh-72px)] lg:py-20">
+        {/* The original dark card background now becomes the entire section background. */}
+        <div className="pointer-events-none absolute inset-0 -z-20 bg-[linear-gradient(105deg,#241E1D_0%,#2B1D1C_42%,#33291F_100%)]" />
+        <div className="pointer-events-none absolute -left-[12%] -top-[28%] -z-10 h-[720px] w-[760px] rounded-full bg-[#8A2128]/28 blur-[150px]" />
+        <div className="pointer-events-none absolute -right-[10%] bottom-[-36%] -z-10 h-[720px] w-[760px] rounded-full bg-[#D6A14B]/16 blur-[155px]" />
+        <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_52%_48%,rgba(255,255,255,0.025),transparent_42%)]" />
+
+        {/* Oversized orbit lines stay subtle and now belong to the page background. */}
+        <div className="pointer-events-none absolute right-[15%] top-1/2 -z-10 h-[520px] w-[520px] -translate-y-1/2 rounded-full border border-white/[0.045]" />
+        <div className="pointer-events-none absolute right-[8%] top-1/2 -z-10 h-[700px] w-[700px] -translate-y-1/2 rounded-full border border-white/[0.03]" />
+        <div className="pointer-events-none absolute right-[1%] top-1/2 -z-10 h-[880px] w-[880px] -translate-y-1/2 rounded-full border border-white/[0.018]" />
+
+        <motion.div
+          initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.6 }}
+          className="serase-container-wide relative z-10 w-full px-6 md:px-8 lg:px-10"
+        >
+          <div className="grid items-center gap-14 lg:grid-cols-[1.08fr_0.92fr] lg:gap-20">
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-[#E3BC66]">
+                Why Serasé
+              </div>
+
+              <h2 className="mt-6 max-w-4xl text-[52px] font-black leading-[0.95] tracking-[-0.055em] sm:text-[64px] md:text-[76px] lg:text-[88px]">
+                Less noise.
+                <br />
+                <span className="text-[#E3BC66]">More connection.</span>
+              </h2>
+            </div>
+
+            <div className="max-w-xl lg:justify-self-end">
+              <p className="text-[18px] font-semibold leading-[1.8] text-white/76 md:text-[20px]">
+                Serasé helps you focus on what matters: real profiles, real conversations, and real dates.
+              </p>
+
+              <div className="mt-7 h-px w-16 bg-[#E3BC66]/60" />
+
+              <p className="mt-7 text-[15px] font-black uppercase tracking-[0.13em] text-white/92">
+                Real people. Real connection. Real life.
+              </p>
+            </div>
+          </div>
         </motion.div>
       </section>
 
-      <DownloadModal isOpen={isDownloadModalOpen} onClose={() => setIsDownloadModalOpen(false)} platform={downloadPlatform} />
+      {/* ==================== Brand Closing ==================== */}
+      <section className="relative px-6 pb-24 pt-10 md:pb-28 md:pt-14">
+        <motion.div
+          initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 18 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="serase-container-content relative mx-auto text-center"
+        >
+          <div className="mx-auto h-px w-16 bg-[#8A2128]/30" />
+
+          <div className="mt-10 serase-eyebrow text-[#8A2128]">
+            Coming soon
+          </div>
+
+          <h2 className="mx-auto mt-5 max-w-3xl text-[42px] font-black leading-[1.02] tracking-[-0.045em] text-serase-heading sm:text-[50px] md:text-[58px]">
+            Serasé is coming soon.
+          </h2>
+
+          <p className="mx-auto mt-5 max-w-xl text-[16px] font-medium leading-[1.8] text-muted-foreground md:text-[17px]">
+            A simpler, safer way to meet verified people and build real connections.
+          </p>
+
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link
+              to="/product"
+              className="serase-btn-nav serase-interact-nav inline-flex items-center justify-center gap-2 bg-[#8A2128] px-6 py-3.5 text-[14px] font-black text-white"
+            >
+              Explore Product
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+
+            <Link
+              to="/safety"
+              className="serase-btn-nav serase-interact-nav inline-flex items-center justify-center gap-2 border border-[#DCCFC8] bg-white/55 px-6 py-3.5 text-[14px] font-black text-[#4C403C] backdrop-blur-sm"
+            >
+              Trust & Safety
+              <ShieldCheck className="h-4 w-4 text-[#8A2128]" />
+            </Link>
+          </div>
+        </motion.div>
+      </section>
+
+
     </div>
   );
 }
